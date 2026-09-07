@@ -54,8 +54,9 @@ class event_test extends \advanced_testcase {
         $user = $this->getDataGenerator()->create_user();
         $context = \context_course::instance($course->id);
 
+        $objectid = 10;
         $event = \local_subcourseenrol\event\user_autoenrolled::create([
-            'objectid' => 10,
+            'objectid' => $objectid,
             'userid' => $user->id,
             'courseid' => $course->id,
             'relateduserid' => $user->id,
@@ -68,7 +69,7 @@ class event_test extends \advanced_testcase {
         $this->assertSame('c', $event->crud);
         $this->assertSame(\core\event\base::LEVEL_PARTICIPATING, $event->edulevel);
         $this->assertSame('user_enrolments', $event->objecttable);
-        $this->assertSame(10, $event->objectid);
+        $this->assertSame($objectid, $event->objectid);
         $this->assertSame($user->id, $event->userid);
         $this->assertSame($course->id, $event->courseid);
         $this->assertSame($user->id, $event->relateduserid);
