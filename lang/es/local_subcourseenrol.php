@@ -43,4 +43,3 @@ $string['howto_desc'] = '<p>Cuando un usuario hace clic en una actividad Subcour
 </ul>';
 $string['privacy:metadata'] = 'Este plugin no almacena datos personales.';
 $string['event_user_autoenrolled'] = 'Usuario auto-matriculado mediante subcourse';
-$string['event_user_autoenrolled_desc'] = 'El usuario con id "{$a->userid}" se auto-matriculó en el curso con id "{$a->courseid}" porque accedió a una actividad subcourse en el curso maestro con id "{$a->other[\'mastercourseid\']}".';
