@@ -6,6 +6,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [2.1.1] — 2026-09-07
+### Fixed
+- `classes/privacy/provider.php`: remove space before colon in return type hint (`ReturnTypeHintSpacing` — Moodle CS)
+- `db/events.php`: revert `internal` flag to `false`; `true` would mark the event as core-internal and prevent external observers from firing
+- `settings.php`: wrap `howto_desc` in `format_text(..., FORMAT_HTML)` to ensure correct HTML rendering in admin heading
+- `version.php`: add trailing comma to `dependencies` array and ensure inline comment ends with a period
+- `classes/observer.php`: improve `@return` docblock for `get_master_enrolment()` to document the `timeend` field shape
+
 ## [2.1.0] — 2026-09-07
 ### Fixed
 - Bug: multi-enrolment ORDER BY now prioritizes perpetual (timeend=0) over expiring enrolments (DT-S3)

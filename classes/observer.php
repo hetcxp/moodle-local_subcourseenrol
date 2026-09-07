@@ -48,10 +48,11 @@ class observer {
      * Get the active enrolment in the master course.
      *
      * Prioritises perpetual enrolments (timeend = 0) over enrolments with a future expiry date.
+     * Returns an object with only the timeend field populated.
      *
      * @param int $courseid Master course ID.
      * @param int $userid User ID.
-     * @return \stdClass|null
+     * @return \stdClass|null Object with timeend (int) or null if not found.
      */
     private static function get_master_enrolment(int $courseid, int $userid): ?\stdClass {
         global $DB;

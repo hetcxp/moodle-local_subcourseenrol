@@ -39,6 +39,6 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_heading(
         'local_subcourseenrol/howto_heading',
         get_string('howto_heading', 'local_subcourseenrol'),
-        get_string('howto_desc', 'local_subcourseenrol')
+        format_text(get_string('howto_desc', 'local_subcourseenrol'), FORMAT_HTML)
     ));
 }
