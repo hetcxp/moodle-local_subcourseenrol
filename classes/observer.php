@@ -47,6 +47,8 @@ class observer {
     /**
      * Get the active enrolment in the master course.
      *
+     * Prioritises perpetual enrolments (timeend = 0) over enrolments with a future expiry date.
+     *
      * @param int $courseid Master course ID.
      * @param int $userid User ID.
      * @return \stdClass|null
@@ -62,7 +64,8 @@ class observer {
                    AND ue.userid = :userid
                    AND ue.status = :status
                    AND (ue.timeend = 0 OR ue.timeend > :now)
-              ORDER BY ue.timeend DESC";
+              ORDER BY CASE WHEN ue.timeend = 0 THEN 1 ELSE 0 END DESC,
+                       ue.timeend DESC";
         $params = [
             'courseid' => $courseid,
             'userid'   => $userid,
@@ -82,11 +85,6 @@ class observer {
      */
     private static function resolve_enrol_instance(int $courseid): ?\stdClass {
         global $DB;
-        
-        $enrolplugin = enrol_get_plugin('manual');
-        if (!$enrolplugin) {
-            return null;
-        }
 
         $instance = $DB->get_record('enrol', ['courseid' => $courseid, 'enrol' => 'manual'], '*', IGNORE_MISSING);
         
@@ -172,6 +170,9 @@ class observer {
         // Fetch the user_enrolments ID for the event objectid.
         $ue = $DB->get_record('user_enrolments', ['enrolid' => $instance->id, 'userid' => $userid], 'id', IGNORE_MISSING);
         $objectid = $ue ? $ue->id : 0;
+        if ($objectid === 0) {
+            debugging('local_subcourseenrol: Could not retrieve user_enrolments id after enrol_user; event objectid will be 0.', DEBUG_DEVELOPER);
+        }
         
         // Log the auto-enrolment.
         $autoenrol_event = \local_subcourseenrol\event\user_autoenrolled::create([
