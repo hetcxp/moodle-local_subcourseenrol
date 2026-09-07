@@ -24,6 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// The local/subcourseenrol:manage capability is reserved for future custom admin management interfaces.
 $capabilities = [
     'local/subcourseenrol:manage' => [
         'captype'      => 'write',
