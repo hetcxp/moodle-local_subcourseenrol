@@ -71,6 +71,7 @@ class event_test extends \advanced_testcase {
         $this->assertSame(10, $event->objectid);
         $this->assertSame($user->id, $event->userid);
         $this->assertSame($course->id, $event->courseid);
+        $this->assertSame($user->id, $event->relateduserid);
     }
 
     /**

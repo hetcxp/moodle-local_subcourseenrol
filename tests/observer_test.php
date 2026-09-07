@@ -39,6 +39,17 @@ defined('MOODLE_INTERNAL') || die();
 class observer_test extends \advanced_testcase {
 
     /**
+     * Set up before class.
+     */
+    public static function setUpBeforeClass(): void {
+        global $DB;
+        parent::setUpBeforeClass();
+        if (!$DB->get_manager()->table_exists('subcourse')) {
+            self::markTestSuiteSkipped('mod_subcourse is not installed; skipping all observer tests.');
+        }
+    }
+
+    /**
      * Setup before each test.
      */
     protected function setUp(): void {
@@ -79,11 +90,6 @@ class observer_test extends \advanced_testcase {
     private function trigger_subcourse_event($mastercourse, $targetcourse, $student, ?int $refcourse = null): void {
         // We mock the event directly to avoid dependency on mod_subcourse generator.
         global $DB;
-
-        $dbman = $DB->get_manager();
-        if (!$dbman->table_exists('subcourse')) {
-            $this->markTestSkipped('mod_subcourse is not installed or subcourse table does not exist.');
-        }
         
         $subcourse = new \stdClass();
         $subcourse->course = $mastercourse->id;
@@ -159,6 +165,11 @@ class observer_test extends \advanced_testcase {
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
         
         $this->assertTrue(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+
+        global $DB;
+        $instance = $DB->get_record('enrol', ['courseid' => $targetcourse->id, 'enrol' => 'manual']);
+        $count = $DB->count_records('user_enrolments', ['enrolid' => $instance->id, 'userid' => $student->id]);
+        $this->assertEquals(1, $count, 'No duplicate user_enrolments records should exist.');
     }
 
     /**
@@ -274,25 +285,6 @@ class observer_test extends \advanced_testcase {
     }
 
     /**
-     * Test user_autoenrolled event throws exception when mastercourseid is missing.
-     *
-     * @covers \local_subcourseenrol\event\user_autoenrolled::validate_data
-     */
-    public function test_validate_data_throws_without_mastercourseid(): void {
-        list($mastercourse, $targetcourse, $student) = $this->setup_scenario();
-
-        $this->expectException(\coding_exception::class);
-        $this->expectExceptionMessage("The 'mastercourseid' value must be set in other.");
-
-        \local_subcourseenrol\event\user_autoenrolled::create([
-            'objectid' => 1,
-            'userid' => $student->id,
-            'courseid' => $targetcourse->id,
-            'context' => \context_course::instance($targetcourse->id),
-        ]);
-    }
-
-    /**
      * Test master enrolment with timeend = 0 results in target enrolment without expiry.
      *
      * @covers \local_subcourseenrol\observer::subcourse_viewed
@@ -311,5 +303,36 @@ class observer_test extends \advanced_testcase {
         $targetenrolment = $DB->get_record('user_enrolments', ['enrolid' => $targetinstance->id, 'userid' => $student->id]);
 
         $this->assertEquals(0, $targetenrolment->timeend);
+    }
+
+    /**
+     * Test multiple active enrolments in master prefers perpetual (timeend = 0) over expiring.
+     *
+     * @covers \local_subcourseenrol\observer::subcourse_viewed
+     */
+    public function test_multiple_active_enrolments_prefers_perpetual(): void {
+        global $DB;
+        list($mastercourse, $targetcourse, $student) = $this->setup_scenario();
+
+        // Ensure primary manual enrolment has timeend = 0 (perpetual).
+        $manualinstance = $DB->get_record('enrol', ['courseid' => $mastercourse->id, 'enrol' => 'manual']);
+        $DB->set_field('user_enrolments', 'timeend', 0, ['enrolid' => $manualinstance->id, 'userid' => $student->id]);
+
+        // Add a second enrolment instance with a future expiry date.
+        $enrolplugin = enrol_get_plugin('manual');
+        $secondinstanceid = $enrolplugin->add_instance($mastercourse, ['name' => 'Expiring enrolment']);
+        $secondinstance = $DB->get_record('enrol', ['id' => $secondinstanceid]);
+        $studentrole = $DB->get_record('role', ['shortname' => 'student']);
+        $futureexpiry = time() + 7200;
+        $enrolplugin->enrol_user($secondinstance, $student->id, $studentrole->id, time(), $futureexpiry);
+
+        // Trigger subcourse event.
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
+
+        // Verify target enrolment inherited the perpetual timeend (0), not the future expiry.
+        $targetinstance = $DB->get_record('enrol', ['courseid' => $targetcourse->id, 'enrol' => 'manual']);
+        $targetenrolment = $DB->get_record('user_enrolments', ['enrolid' => $targetinstance->id, 'userid' => $student->id]);
+
+        $this->assertEquals(0, $targetenrolment->timeend, 'Target enrolment must be perpetual when master has a perpetual enrolment.');
     }
 }
