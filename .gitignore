@@ -38,3 +38,8 @@ vendor/
 *.log
 error_log
 .phpunit.result.cache
+
+# --- Herramientas de IA y AST ---
+.llm_build/*
+!.llm_build/index.md
+!.llm_build/index-compact.md
