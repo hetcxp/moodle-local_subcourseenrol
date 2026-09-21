@@ -5,6 +5,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
+### Added
+- `LICENSE`: full GNU General Public License v3 text in plugin root for Moodle Plugins directory compliance
 
 ## [2.1.1] — 2026-09-07
 ### Fixed

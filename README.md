@@ -110,6 +110,6 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## 🪪 License
 
-GNU General Public License v3 or later — see [LICENSE](https://www.gnu.org/licenses/gpl-3.0.html).
+GNU General Public License v3 or later — see [LICENSE](LICENSE).
 
 Copyright © 2026 Héctor Eduardo Terán Canelones.
