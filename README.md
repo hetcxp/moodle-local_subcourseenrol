@@ -66,6 +66,10 @@ observer::subcourse_viewed()
 
 1. Copy or clone this repository into your Moodle installation:
    ```bash
+   # Via Git clone:
+   git clone https://github.com/hetcxp/moodle-local_subcourseenrol.git /path/to/moodle/local/subcourseenrol
+
+   # Or manually copying the folder:
    cp -r subcourseenrol /path/to/moodle/local/subcourseenrol
    ```
 2. Run the Moodle upgrade script:
