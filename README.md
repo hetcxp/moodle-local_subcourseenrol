@@ -1,6 +1,6 @@
 # 🎓 Subcourse Auto-Enrolment — `local_subcourseenrol`
 
-> **Moodle Local Plugin** · v2.1.0 · Requires Moodle 4.5+ · Requires `mod_subcourse` ≥ 2025032001
+> **Moodle Local Plugin** · v2.1.2 · Requires Moodle 4.5+ · Requires `mod_subcourse` ≥ 2025032001
 
 **Subcourse Auto-Enrolment** bridges the gap between structured learning pathways and administrative simplicity. It automatically enrols students into target courses the moment they click on a Subcourse activity, syncing enrolment expiration effortlessly from the master course.
 
@@ -28,7 +28,15 @@ Managing complex training programs across multiple Moodle courses can be an admi
 | **Custom event** | `classes/event/user_autoenrolled.php` — logged to Moodle's event log |
 | **Privacy** | `classes/privacy/provider.php` — `null_provider` (no data stored) |
 | **Settings** | `settings.php` — enable/disable toggle under _Site Administration → Local plugins_ |
-| **Tests** | `tests/observer_test.php` (9 PHPUnit cases) · `tests/event_test.php` (4 PHPUnit cases) |
+| **Tests** | `tests/observer_test.php` (11 PHPUnit cases) · `tests/event_test.php` (5 PHPUnit cases) · `tests/behat/autoenrolment.feature` |
+
+---
+
+## 📸 Screenshots
+
+| Admin Settings | Event Flow & Audit Trail |
+|---|---|
+| ![Admin Settings](pix/01_admin_settings.png) | ![Flow and Audit Log](pix/02_flow_and_audit_log.png) |
 
 ### Enrolment Logic Flow
 
