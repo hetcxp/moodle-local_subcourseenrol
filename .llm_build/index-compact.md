@@ -1,7 +1,5 @@
 # Compact Symbol Map
 
-> Designed for 8B Triage Models (Fast path validation & blast-radius checks).
-
 ## `classes/event/user_autoenrolled.php`
 - class user_autoenrolled (init, get_name, get_description, get_url, validate_data) [L36]
 

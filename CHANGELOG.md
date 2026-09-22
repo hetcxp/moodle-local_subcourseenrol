@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
-## [Unreleased]
+## [2.1.2] — 2026-09-21
 ### Added
-- `LICENSE`: full GNU General Public License v3 text in plugin root for Moodle Plugins directory compliance
+- `LICENSE`: full GNU General Public License v3 text in plugin root for Moodle Plugins directory compliance.
+- `lang/en`, `lang/es`: added `subcourseenrol:manage` capability definition string.
+- `pix/`: added screenshots (`01_admin_settings.png`, `02_flow_and_audit_log.png`) for Moodle Plugins directory listing compliance.
 
 ## [2.1.1] — 2026-09-07
 ### Fixed

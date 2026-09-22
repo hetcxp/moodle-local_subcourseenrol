@@ -43,3 +43,4 @@ $string['howto_desc'] = '<p>When a user clicks on a Subcourse activity inside a 
 </ul>';
 $string['privacy:metadata'] = 'This plugin does not store personal data.';
 $string['event_user_autoenrolled'] = 'User auto-enrolled via subcourse';
+$string['subcourseenrol:manage'] = 'Manage subcourse auto-enrolment';
