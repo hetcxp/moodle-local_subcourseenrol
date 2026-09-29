@@ -24,7 +24,6 @@
 
 namespace local_subcourseenrol\event;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Event for user_autoenrolled.
@@ -34,7 +33,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class user_autoenrolled extends \core\event\base {
-
     /**
      * Init method.
      */

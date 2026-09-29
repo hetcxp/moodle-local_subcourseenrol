@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
+## [2.1.3] — 2026-09-28
+### Fixed
+- `classes/observer.php`: distinguish active vs expired target enrolments via `is_enrolled($coursecontext, $userid, '', true)`, renewing expired enrolments and preserving suspended enrolments (DT-001).
+- `classes/observer.php`: ensure master enrolment query checks that the master enrolment instance is enabled (`e.status = ENROL_INSTANCE_ENABLED`) and start window is valid (`ue.timestart < :timestart`) (DT-002).
+- `classes/observer.php`: verify `enrol_is_enabled('manual')`, select enabled manual enrolment instances deterministically by `sortorder, id ASC`, and validate plugin object existence before enrolment (DT-003).
+- `classes/observer.php`: validate `$targetcourseid <= 0` and instantiate context with `IGNORE_MISSING`, avoiding exceptions when referenced courses do not exist (DT-004).
+### Tests
+- `tests/observer_test.php`: added 7 regression tests covering expired target renewal, suspended target preservation, future master enrolment, disabled master instance, deterministic manual instance selection, disabled manual plugin, and non-existent target course (DT-005).
+- `tests/observer_test.php`: resolved event redirection interception in `test_autoenrolled_event_is_fired` and fixed manual instance mock in `test_multiple_active_enrolments_prefers_perpetual`.
+- `tests/behat/autoenrolment.feature`: modernized Gherkin step definitions to Moodle 5.x standards with `mod_subcourse` integration.
+
 ## [2.1.2] — 2026-09-21
 ### Added
 - `LICENSE`: full GNU General Public License v3 text in plugin root for Moodle Plugins directory compliance.

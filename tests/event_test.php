@@ -25,7 +25,6 @@
 
 namespace local_subcourseenrol;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Event tests.
@@ -37,7 +36,6 @@ defined('MOODLE_INTERNAL') || die();
  * @covers     \local_subcourseenrol\event\user_autoenrolled
  */
 class event_test extends \advanced_testcase {
-
     /**
      * Setup before each test.
      */

@@ -24,7 +24,6 @@
 
 namespace local_subcourseenrol;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Event observer class.
@@ -34,7 +33,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class observer {
-
     /**
      * Check if the plugin is enabled.
      *
@@ -56,7 +54,7 @@ class observer {
      */
     private static function get_master_enrolment(int $courseid, int $userid): ?\stdClass {
         global $DB;
-        
+
         $now = time();
         $sql = "SELECT ue.timeend
                   FROM {user_enrolments} ue
@@ -64,14 +62,18 @@ class observer {
                  WHERE e.courseid = :courseid
                    AND ue.userid = :userid
                    AND ue.status = :status
-                   AND (ue.timeend = 0 OR ue.timeend > :now)
+                   AND e.status = :enrolstatus
+                   AND ue.timestart < :timestart
+                   AND (ue.timeend = 0 OR ue.timeend > :timeend)
               ORDER BY CASE WHEN ue.timeend = 0 THEN 1 ELSE 0 END DESC,
                        ue.timeend DESC";
         $params = [
-            'courseid' => $courseid,
-            'userid'   => $userid,
-            'status'   => ENROL_USER_ACTIVE,
-            'now'      => $now
+            'courseid'    => $courseid,
+            'userid'      => $userid,
+            'status'      => ENROL_USER_ACTIVE,
+            'enrolstatus' => ENROL_INSTANCE_ENABLED,
+            'timestart'   => $now,
+            'timeend'     => $now,
         ];
 
         $enrolment = $DB->get_record_sql($sql, $params, IGNORE_MULTIPLE);
@@ -87,19 +89,26 @@ class observer {
     private static function resolve_enrol_instance(int $courseid): ?\stdClass {
         global $DB;
 
-        $instance = $DB->get_record('enrol', ['courseid' => $courseid, 'enrol' => 'manual'], '*', IGNORE_MISSING);
-        
-        if (!$instance) {
-            debugging("local_subcourseenrol: Manual enrolment instance not found in course {$courseid}. Skipping auto-enrolment.", DEBUG_DEVELOPER);
+        if (!enrol_is_enabled('manual')) {
+            debugging('local_subcourseenrol: Manual enrolment plugin is disabled.', DEBUG_DEVELOPER);
             return null;
         }
 
-        if ($instance->status != ENROL_INSTANCE_ENABLED) {
-            debugging("local_subcourseenrol: Manual enrolment instance is disabled in course {$courseid}. Skipping auto-enrolment.", DEBUG_DEVELOPER);
+        $instances = $DB->get_records('enrol', [
+            'courseid' => $courseid,
+            'enrol'    => 'manual',
+            'status'   => ENROL_INSTANCE_ENABLED,
+        ], 'sortorder, id ASC');
+
+        if (empty($instances)) {
+            debugging(
+                "local_subcourseenrol: No enabled manual enrolment instance found in course {$courseid}. Skipping auto-enrolment.",
+                DEBUG_DEVELOPER
+            );
             return null;
         }
-        
-        return $instance;
+
+        return reset($instances) ?: null;
     }
 
     /**
@@ -109,17 +118,17 @@ class observer {
      */
     private static function resolve_student_role(): ?\stdClass {
         global $DB;
-        
+
         $studentrole = $DB->get_record('role', ['shortname' => 'student'], 'id', IGNORE_MISSING);
         if ($studentrole) {
             return $studentrole;
         }
-        
+
         $roles = get_archetype_roles('student');
         if (empty($roles)) {
             return null;
         }
-        
+
         return reset($roles);
     }
 
@@ -140,13 +149,20 @@ class observer {
             return;
         }
 
+        $targetcourseid = (int)$subcourse->refcourse;
+        if ($targetcourseid <= 0) {
+            return;
+        }
+
+        $coursecontext = \context_course::instance($targetcourseid, IGNORE_MISSING);
+        if (!$coursecontext) {
+            return;
+        }
+
         $userid = $event->userid;
         $mastercourseid = $event->courseid;
-        $targetcourseid = (int)$subcourse->refcourse;
-        
-        $coursecontext = \context_course::instance($targetcourseid);
 
-        if (is_enrolled($coursecontext, $userid)) {
+        if (is_enrolled($coursecontext, $userid, '', true)) {
             return;
         }
 
@@ -160,33 +176,49 @@ class observer {
             return;
         }
 
+        // Do not reactivate or override an explicitly suspended enrolment.
+        $existingue = $DB->get_record('user_enrolments', [
+            'enrolid' => $instance->id,
+            'userid'  => $userid,
+        ], 'id, status', IGNORE_MISSING);
+        if ($existingue && (int)$existingue->status === ENROL_USER_SUSPENDED) {
+            return;
+        }
+
         $studentrole = self::resolve_student_role();
         if (!$studentrole) {
             return;
         }
 
         $enrolplugin = enrol_get_plugin('manual');
+        if (!$enrolplugin) {
+            debugging('local_subcourseenrol: Manual enrolment plugin not found.', DEBUG_DEVELOPER);
+            return;
+        }
+
         $enrolplugin->enrol_user($instance, $userid, $studentrole->id, time(), (int)$masterenrolment->timeend);
-        
+
         // Fetch the user_enrolments ID for the event objectid.
         $ue = $DB->get_record('user_enrolments', ['enrolid' => $instance->id, 'userid' => $userid], 'id', IGNORE_MISSING);
         $objectid = $ue ? $ue->id : 0;
         if ($objectid === 0) {
-            debugging('local_subcourseenrol: Could not retrieve user_enrolments id after enrol_user; event objectid will be 0.', DEBUG_DEVELOPER);
+            debugging(
+                'local_subcourseenrol: Could not retrieve user_enrolments id after enrol_user; event objectid will be 0.',
+                DEBUG_DEVELOPER
+            );
         }
-        
+
         // Log the auto-enrolment.
-        $autoenrol_event = \local_subcourseenrol\event\user_autoenrolled::create([
+        $autoenrolevent = \local_subcourseenrol\event\user_autoenrolled::create([
             'objectid' => $objectid,
             'userid' => $userid,
             'courseid' => $targetcourseid,
             'relateduserid' => $userid,
             'context' => $coursecontext,
             'other' => [
-                'mastercourseid' => $mastercourseid
-            ]
+                'mastercourseid' => $mastercourseid,
+            ],
         ]);
-        $autoenrol_event->trigger();
-
+        $autoenrolevent->trigger();
     }
 }

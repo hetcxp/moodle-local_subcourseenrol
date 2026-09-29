@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
     $settings = new admin_settingpage('local_subcourseenrol', get_string('pluginname', 'local_subcourseenrol'));
-    
+
     $ADMIN->add('localplugins', $settings);
 
     $settings->add(new admin_setting_configcheckbox(
