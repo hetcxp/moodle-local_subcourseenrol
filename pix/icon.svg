@@ -27,7 +27,7 @@
   <rect x="1" y="1" width="198" height="198" rx="43" fill="none" stroke="#334155" stroke-width="1.5" opacity="0.6"/>
 
   <!-- Circuit / Pathway Connections -->
-  <path d="M100 82 V112 M100 112 H58 V136 M100 112 H142 V136" 
+  <path d="M100 82 V112 M100 112 H58 V136 M100 112 H142 V136"
         fill="none" stroke="#38BDF8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
 
   <!-- Subcourse Target Nodes -->

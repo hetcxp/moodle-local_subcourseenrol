@@ -25,6 +25,8 @@
 
 namespace local_subcourseenrol;
 
+defined('MOODLE_INTERNAL') || die();
+
 
 /**
  * Event tests.

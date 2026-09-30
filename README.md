@@ -30,7 +30,7 @@ Managing complex training programs across multiple Moodle courses can be an admi
 | **Custom event** | `classes/event/user_autoenrolled.php` — logged to Moodle's event log |
 | **Privacy** | `classes/privacy/provider.php` — `null_provider` (no data stored) |
 | **Settings** | `settings.php` — enable/disable toggle under _Site Administration → Local plugins_ |
-| **Tests** | `tests/observer_test.php` (18 PHPUnit cases) · `tests/event_test.php` (5 PHPUnit cases) · `tests/behat/autoenrolment.feature` (23 PHPUnit cases total) |
+| **Tests** | `tests/observer_test.php` (18 cases) · `tests/event_test.php` (5 cases) [23 PHPUnit cases total] · `tests/behat/autoenrolment.feature` (3 Behat scenarios) |
 
 ---
 
@@ -120,6 +120,12 @@ Settings page: `Site Administration → Local plugins → Subcourse auto-enrolme
 vendor/bin/phpunit --filter local_subcourseenrol
 ```
 *Note: Requires `mod_subcourse` to be present in the Moodle installation; tests are safely skipped otherwise.*
+
+### Behat Acceptance Tests (3 scenarios)
+```bash
+# Run acceptance test scenarios for subcourse auto-enrolment
+vendor/bin/behat --tags="@local_subcourseenrol"
+```
 
 ### Code Style & Linter (Moodle CS)
 ```bash

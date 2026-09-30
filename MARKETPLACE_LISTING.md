@@ -1,6 +1,6 @@
 # Moodle Plugins Directory & Marketplace Listing Kit
-**Plugin:** Subcourse Auto-Enrolment (`local_subcourseenrol`)  
-**Version:** 2.1.3 | **Target:** Moodle 4.5+ | **License:** GNU GPL v3  
+**Plugin:** Subcourse Auto-Enrolment (`local_subcourseenrol`)
+**Version:** 2.1.3 | **Target:** Moodle 4.5+ | **License:** GNU GPL v3
 **Guidelines Reference:** [Moodle Marketplace Submission Standards](https://moodle.atlassian.net/wiki/external/OTE4YmM3MDlmM2ZjNDczMGFlNzRlZGM0YTlmNGVlNDU)
 
 ---
@@ -25,7 +25,7 @@
 ### Short Description (Max 270 characters)
 > Instantly enrols students into subcourses when clicked, syncing access expiration from the master course. Eliminates manual enrolment overhead and ensures a frictionless multi-course learning journey for Moodle administrators and learners.
 * **Character count:** 236 / 270
-* **First 119 characters (Search Card View):**  
+* **First 119 characters (Search Card View):**
   `Instantly enrols students into subcourses when clicked, syncing access expiration from the master course. Eliminates ma`
 
 ---
@@ -34,7 +34,7 @@
 
 ## Connect Modular Pathways with Zero Enrolment Friction
 
-Managing structured multi-course curricula, corporate compliance tracks, or degree modules in Moodle often requires connecting independent courses. While the popular `mod_subcourse` activity links course grades together, **students are frequently blocked by the dreaded error:**  
+Managing structured multi-course curricula, corporate compliance tracks, or degree modules in Moodle often requires connecting independent courses. While the popular `mod_subcourse` activity links course grades together, **students are frequently blocked by the dreaded error:**
 > *"You cannot enrol yourself in this course."*
 
 **Subcourse Auto-Enrolment (`local_subcourseenrol`)** completely automates this process. The exact millisecond a student clicks on a Subcourse activity within a master course, they are seamlessly enrolled into the referenced target course—with zero administrative intervention and zero learner drop-off.
@@ -99,8 +99,8 @@ Managing structured multi-course curricula, corporate compliance tracks, or degr
 
 ### 🤝 Support & Documentation
 
-* **Source Code Repository:** [GitHub - Subcourse Auto-Enrolment](https://github.com/) *(Add your repository URL)*
-* **Issue Tracker & Feature Requests:** [GitHub Issues](https://github.com/issues) *(Add your issue tracker URL)*
+* **Source Code Repository:** [GitHub - Subcourse Auto-Enrolment](https://github.com/hetcxp/moodle-local_subcourseenrol)
+* **Issue Tracker & Feature Requests:** [GitHub Issues](https://github.com/hetcxp/moodle-local_subcourseenrol/issues)
 * **License:** GNU General Public License v3.0
 
 ---
@@ -115,7 +115,7 @@ Managing structured multi-course curricula, corporate compliance tracks, or degr
 ### Descripción Corta (Máximo 270 caracteres)
 > Matricula al alumno al entrar al subcurso y sincroniza la expiración del curso principal. Elimina la gestión manual de inscripciones y garantiza una experiencia de aprendizaje modular continua y sin errores de acceso.
 * **Conteo de caracteres:** 217 / 270
-* **Primeros 119 caracteres (Vista en tarjeta de búsqueda):**  
+* **Primeros 119 caracteres (Vista en tarjeta de búsqueda):**
   `Matricula al alumno al entrar al subcurso y sincroniza la expiración del curso principal. Elimina la gestión manual de `
 
 ---
@@ -124,7 +124,7 @@ Managing structured multi-course curricula, corporate compliance tracks, or degr
 
 ## Conecte Rutas de Aprendizaje Modulares Sin Fricciones de Acceso
 
-La gestión de itinerarios formativos complejos, programas corporativos o mallas curriculares universitarias en Moodle a menudo requiere enlazar cursos independientes. Aunque la popular actividad `mod_subcourse` permite consolidar calificaciones entre cursos, **los estudiantes chocan frecuentemente con un bloqueo frustrante:**  
+La gestión de itinerarios formativos complejos, programas corporativos o mallas curriculares universitarias en Moodle a menudo requiere enlazar cursos independientes. Aunque la popular actividad `mod_subcourse` permite consolidar calificaciones entre cursos, **los estudiantes chocan frecuentemente con un bloqueo frustrante:**
 > *"No puede automatricularse en este curso."*
 
 **Subcourse Auto-Enrolment (`local_subcourseenrol`)** automatiza este proceso por completo. En el milisegundo exacto en que un estudiante hace clic en una actividad de Subcurso dentro de un curso principal, queda matriculado de forma transparente en el curso de destino, sin intervención manual de soporte y sin abandonos en el aula virtual.

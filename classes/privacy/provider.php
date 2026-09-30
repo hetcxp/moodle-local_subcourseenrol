@@ -24,6 +24,8 @@
 
 namespace local_subcourseenrol\privacy;
 
+defined('MOODLE_INTERNAL') || die();
+
 
 /**
  * Privacy provider class.

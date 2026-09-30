@@ -21,7 +21,7 @@
  * @copyright  2026 Héctor Eduardo Terán Canelones
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * Upgrade function.
@@ -63,6 +63,11 @@ function xmldb_local_subcourseenrol_upgrade($oldversion) {
         }
 
         upgrade_plugin_savepoint(true, 2026082602, 'local', 'subcourseenrol');
+    }
+
+    if ($oldversion < 2026092800) {
+        // v2.1.3: Enrolment logic improvements and bugfixes (no schema changes).
+        upgrade_plugin_savepoint(true, 2026092800, 'local', 'subcourseenrol');
     }
 
     return true;
