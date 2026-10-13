@@ -24,9 +24,6 @@
 
 namespace local_subcourseenrol\event;
 
-defined('MOODLE_INTERNAL') || die();
-
-
 /**
  * Event for user_autoenrolled.
  *

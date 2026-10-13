@@ -25,9 +25,6 @@
 
 namespace local_subcourseenrol;
 
-defined('MOODLE_INTERNAL') || die();
-
-
 /**
  * Event observer tests.
  *
@@ -35,8 +32,8 @@ defined('MOODLE_INTERNAL') || die();
  * @category   test
  * @copyright  2026 Héctor Eduardo Terán Canelones
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \local_subcourseenrol\observer
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_subcourseenrol\observer::class)]
 class observer_test extends \advanced_testcase {
     /**
      * Set up before class.
@@ -126,8 +123,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test the full auto-enrolment workflow.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_auto_enrolment_workflow(): void {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
@@ -141,8 +136,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test plugin disabled.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_plugin_disabled_no_enrolment(): void {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
@@ -155,8 +148,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test user already enrolled.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_user_already_enrolled_no_duplicate(): void {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
@@ -175,8 +166,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test missing manual instance.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_manual_instance_missing_no_enrolment(): void {
         global $DB;
@@ -188,12 +177,13 @@ class observer_test extends \advanced_testcase {
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
 
         $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+        $expecteddebug = "local_subcourseenrol: No enabled manual enrolment instance found in course " .
+            $targetcourse->id . ". Skipping auto-enrolment.";
+        $this->assertDebuggingCalled($expecteddebug);
     }
 
     /**
      * Test disabled manual instance.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_manual_instance_disabled_no_enrolment(): void {
         global $DB;
@@ -204,12 +194,13 @@ class observer_test extends \advanced_testcase {
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
 
         $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+        $expecteddebug = "local_subcourseenrol: No enabled manual enrolment instance found in course " .
+            $targetcourse->id . ". Skipping auto-enrolment.";
+        $this->assertDebuggingCalled($expecteddebug);
     }
 
     /**
      * Test inherited timeend.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_timeend_inherited_from_master(): void {
         global $DB;
@@ -230,8 +221,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test subcourse without refcourse does not trigger enrolment.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_subcourse_without_refcourse_no_enrolment(): void {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
@@ -243,8 +232,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test fallback to archetype roles when 'student' shortname role does not exist.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_student_role_fallback_via_archetype(): void {
         global $DB;
@@ -261,8 +248,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test user_autoenrolled event is triggered on enrolment.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_autoenrolled_event_is_fired(): void {
         global $DB;
@@ -316,8 +301,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test master enrolment with timeend = 0 results in target enrolment without expiry.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_master_enrolment_timeend_zero_no_expiry(): void {
         global $DB;
@@ -337,8 +320,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test multiple active enrolments in master prefers perpetual (timeend = 0) over expiring.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_multiple_active_enrolments_prefers_perpetual(): void {
         global $DB;
@@ -383,8 +364,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test that an expired target enrolment is renewed with master timeend.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_expired_target_enrolment_is_renewed(): void {
         global $DB;
@@ -420,8 +399,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test that an explicitly suspended target enrolment is not overridden.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_suspended_target_enrolment_is_not_overridden(): void {
         global $DB;
@@ -453,8 +430,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test that a future master enrolment does not trigger auto-enrolment.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_future_master_enrolment_does_not_enrol(): void {
         global $DB;
@@ -475,8 +450,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test that a disabled master enrolment instance does not trigger auto-enrolment.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_disabled_master_instance_does_not_enrol(): void {
         global $DB;
@@ -493,8 +466,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test that the enabled manual instance is deterministically selected when multiple exist.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_enabled_manual_instance_is_selected(): void {
         global $DB;
@@ -529,8 +500,6 @@ class observer_test extends \advanced_testcase {
 
     /**
      * Test that disabling the manual enrolment plugin globally prevents auto-enrolment.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_disabled_manual_plugin_does_not_enrol(): void {
         global $CFG;
@@ -544,12 +513,11 @@ class observer_test extends \advanced_testcase {
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
 
         $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+        $this->assertDebuggingCalled('local_subcourseenrol: Manual enrolment plugin is disabled.');
     }
 
     /**
      * Test that an invalid or non-existent target course does not throw an exception.
-     *
-     * @covers \local_subcourseenrol\observer::subcourse_viewed
      */
     public function test_missing_target_course_does_not_throw(): void {
         global $DB;
@@ -570,5 +538,46 @@ class observer_test extends \advanced_testcase {
             return $e instanceof \local_subcourseenrol\event\user_autoenrolled;
         });
         $this->assertCount(0, $autoenrolevents);
+    }
+
+    /**
+     * Test that guest user viewing subcourse does not trigger auto-enrolment.
+     */
+    public function test_guest_user_no_enrolment(): void {
+        [$mastercourse, $targetcourse] = $this->setup_scenario();
+        $guestuser = guest_user();
+
+        $this->setUser($guestuser);
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $guestuser);
+
+        $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $guestuser->id));
+    }
+
+    /**
+     * Test that invalid user id (<= 0) viewing subcourse triggers debugging and no enrolment.
+     */
+    public function test_invalid_userid_no_enrolment(): void {
+        [$mastercourse, $targetcourse] = $this->setup_scenario();
+        $fakeuser = (object)['id' => 0];
+
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $fakeuser);
+
+        $this->assertDebuggingCalled('local_subcourseenrol: Invalid userid in subcourse_viewed event.');
+    }
+
+    /**
+     * Test boundary where master enrolment timestart equals current time exactly.
+     */
+    public function test_timestart_exact_boundary_enrolment(): void {
+        global $DB;
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+
+        $now = time();
+        $instance = $DB->get_record('enrol', ['courseid' => $mastercourse->id, 'enrol' => 'manual']);
+        $DB->set_field('user_enrolments', 'timestart', $now, ['enrolid' => $instance->id, 'userid' => $student->id]);
+
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
+
+        $this->assertTrue(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
     }
 }

@@ -1,6 +1,6 @@
 # Moodle Plugins Directory & Marketplace Listing Kit
 **Plugin:** Subcourse Auto-Enrolment (`local_subcourseenrol`)
-**Version:** 2.1.3 | **Target:** Moodle 4.5+ | **License:** GNU GPL v3
+**Version:** 2.1.4 | **Target:** Moodle 4.5+ | **License:** GNU GPL v3
 **Guidelines Reference:** [Moodle Marketplace Submission Standards](https://moodle.atlassian.net/wiki/external/OTE4YmM3MDlmM2ZjNDczMGFlNzRlZGM0YTlmNGVlNDU)
 
 ---

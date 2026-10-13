@@ -25,9 +25,6 @@
 
 namespace local_subcourseenrol;
 
-defined('MOODLE_INTERNAL') || die();
-
-
 /**
  * Event tests.
  *
@@ -35,8 +32,8 @@ defined('MOODLE_INTERNAL') || die();
  * @category   test
  * @copyright  2026 Héctor Eduardo Terán Canelones
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \local_subcourseenrol\event\user_autoenrolled
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_subcourseenrol\event\user_autoenrolled::class)]
 class event_test extends \advanced_testcase {
     /**
      * Setup before each test.

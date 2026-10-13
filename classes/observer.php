@@ -24,9 +24,6 @@
 
 namespace local_subcourseenrol;
 
-defined('MOODLE_INTERNAL') || die();
-
-
 /**
  * Event observer class.
  *
@@ -65,7 +62,7 @@ class observer {
                    AND ue.userid = :userid
                    AND ue.status = :status
                    AND e.status = :enrolstatus
-                   AND ue.timestart < :timestart
+                   AND ue.timestart <= :timestart
                    AND (ue.timeend = 0 OR ue.timeend > :timeend)
               ORDER BY CASE WHEN ue.timeend = 0 THEN 1 ELSE 0 END DESC,
                        ue.timeend DESC";
@@ -161,7 +158,14 @@ class observer {
             return;
         }
 
-        $userid = $event->userid;
+        $userid = (int)$event->userid;
+        if ($userid <= 0) {
+            debugging('local_subcourseenrol: Invalid userid in subcourse_viewed event.', DEBUG_DEVELOPER);
+            return;
+        }
+        if (isguestuser($userid)) {
+            return;
+        }
         $mastercourseid = $event->courseid;
 
         if (is_enrolled($coursecontext, $userid, '', true)) {
@@ -198,29 +202,45 @@ class observer {
             return;
         }
 
-        $enrolplugin->enrol_user($instance, $userid, $studentrole->id, time(), (int)$masterenrolment->timeend);
-
-        // Fetch the user_enrolments ID for the event objectid.
-        $ue = $DB->get_record('user_enrolments', ['enrolid' => $instance->id, 'userid' => $userid], 'id', IGNORE_MISSING);
-        $objectid = $ue ? $ue->id : 0;
-        if ($objectid === 0) {
-            debugging(
-                'local_subcourseenrol: Could not retrieve user_enrolments id after enrol_user; event objectid will be 0.',
-                DEBUG_DEVELOPER
-            );
+        try {
+            $enrolplugin->enrol_user($instance, $userid, $studentrole->id, time(), (int)$masterenrolment->timeend);
+        } catch (\Throwable $e) {
+            debugging('local_subcourseenrol: Exception during enrol_user: ' . $e->getMessage() . "\n" .
+                $e->getTraceAsString(), DEBUG_DEVELOPER);
+            return;
         }
 
-        // Log the auto-enrolment.
-        $autoenrolevent = \local_subcourseenrol\event\user_autoenrolled::create([
-            'objectid' => $objectid,
-            'userid' => $userid,
-            'courseid' => $targetcourseid,
-            'relateduserid' => $userid,
-            'context' => $coursecontext,
-            'other' => [
-                'mastercourseid' => $mastercourseid,
-            ],
-        ]);
-        $autoenrolevent->trigger();
+        try {
+            // Fetch the user_enrolments ID for the event objectid.
+            $ue = $DB->get_record(
+                'user_enrolments',
+                ['enrolid' => $instance->id, 'userid' => $userid],
+                'id',
+                IGNORE_MISSING
+            );
+            $objectid = $ue ? (int)$ue->id : 0;
+            if ($objectid === 0) {
+                debugging(
+                    'local_subcourseenrol: Could not retrieve user_enrolments id after enrol_user; event objectid will be 0.',
+                    DEBUG_DEVELOPER
+                );
+            }
+
+            // Log the auto-enrolment.
+            $autoenrolevent = \local_subcourseenrol\event\user_autoenrolled::create([
+                'objectid' => $objectid,
+                'userid' => $userid,
+                'courseid' => $targetcourseid,
+                'relateduserid' => $userid,
+                'context' => $coursecontext,
+                'other' => [
+                    'mastercourseid' => $mastercourseid,
+                ],
+            ]);
+            $autoenrolevent->trigger();
+        } catch (\Throwable $e) {
+            debugging('local_subcourseenrol: Exception while triggering user_autoenrolled event: ' .
+                $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 }

@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
+## [2.1.4] — 2026-10-13
+### Added
+- `classes/observer.php`: defensive checks for empty and guest users (`isguestuser($userid) || $userid <= 0`) avoiding invalid auto-enrolment attempts and logging developer notice for non-positive user IDs.
+- `classes/observer.php`: wrapped auto-enrolment and event triggering in separated, defensive `try / catch (\Throwable $e)` blocks with developer stack traces to reduce the likelihood of enrolment exceptions interrupting course module navigation.
+- `db/upgrade.php`: added upgrade savepoint for version `2026101300`.
+- `tests/observer_test.php`: added test cases `test_guest_user_no_enrolment`, `test_invalid_userid_no_enrolment`, and `test_timestart_exact_boundary_enrolment`.
+
+### Fixed
+- `classes/observer.php`: fixed strict start time boundary from `< :timestart` to `<= :timestart` in `get_master_enrolment()`.
+- CodeChecker / Moodle CS: removed redundant `MOODLE_INTERNAL` checks from autoloaded classes and test classes (`classes/observer.php`, `classes/event/user_autoenrolled.php`, `classes/privacy/provider.php`, `db/upgrade.php`, `tests/event_test.php`, `tests/observer_test.php`).
+- `db/upgrade.php`: fixed comment capitalization warning.
+
+### Tests
+- PHPUnit 11 & Moodle 5.3+: migrated test metadata from deprecated phpdoc `@covers` docblocks to PHP 8 Attributes (`#[\PHPUnit\Framework\Attributes\CoversClass]`) across all test classes.
+- `tests/observer_test.php`: added explicit `assertDebuggingCalled` assertions for negative manual enrolment test scenarios, eliminating all PHPUnit notices.
+
 ## [2.1.3] — 2026-09-28
 ### Fixed
 - `classes/observer.php`: distinguish active vs expired target enrolments via `is_enrolled($coursecontext, $userid, '', true)`, renewing expired enrolments and preserving suspended enrolments (DT-001).
