@@ -1,0 +1,5 @@
+# Exclude repository-specific and build tooling from release archives
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/.llm_build export-ignore
+/MARKETPLACE_LISTING.md export-ignore
