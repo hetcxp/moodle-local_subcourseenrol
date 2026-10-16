@@ -73,5 +73,10 @@ function xmldb_local_subcourseenrol_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026101300, 'local', 'subcourseenrol');
     }
 
+    if ($oldversion < 2026101600) {
+        // V2.1.5: Concurrency locking (TOCTOU), timestart inheritance, and configurable enrolment role.
+        upgrade_plugin_savepoint(true, 2026101600, 'local', 'subcourseenrol');
+    }
+
     return true;
 }

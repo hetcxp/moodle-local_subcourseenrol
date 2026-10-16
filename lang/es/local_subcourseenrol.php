@@ -27,6 +27,9 @@ defined('MOODLE_INTERNAL') || die();
 $string['pluginname'] = 'Auto-matrícula por subcurso';
 $string['enabled'] = 'Habilitar auto-matrícula';
 $string['enabled_desc'] = 'Si está habilitado, los usuarios que hagan clic en un enlace de actividad subcourse se matricularán automáticamente en el curso de destino si no lo están ya.';
+$string['defaultrole_archetype'] = 'Por defecto (Arquetipo de estudiante)';
+$string['roleid'] = 'Rol de matrícula';
+$string['roleid_desc'] = 'Seleccione el rol asignado al usuario al auto-matricularlo. Si selecciona por defecto, se resuelve el rol estándar del arquetipo de estudiante.';
 
 $string['howto_heading'] = 'Cómo funciona';
 $string['howto_desc'] = '<p>Cuando un usuario hace clic en una actividad Subcourse dentro de un curso maestro, este plugin lo matricula automáticamente en el curso referenciado (destino) con rol de estudiante.</p>

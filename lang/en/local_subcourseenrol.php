@@ -27,6 +27,9 @@ defined('MOODLE_INTERNAL') || die();
 $string['pluginname'] = 'Subcourse auto-enrolment';
 $string['enabled'] = 'Enable auto-enrolment';
 $string['enabled_desc'] = 'When enabled, users clicking a subcourse activity link will be automatically enrolled in the target course if they are not already.';
+$string['defaultrole_archetype'] = 'Default (Student archetype)';
+$string['roleid'] = 'Enrolment role';
+$string['roleid_desc'] = 'Select the role assigned to the user upon auto-enrolment. If default is selected, the standard student archetype role is resolved.';
 
 $string['howto_heading'] = 'How it works';
 $string['howto_desc'] = '<p>When a user clicks on a Subcourse activity inside a master course, this plugin automatically enrols them into the referenced (target) course as a student.</p>

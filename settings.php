@@ -36,6 +36,18 @@ if ($hassiteconfig) {
         1
     ));
 
+    $roles = [0 => get_string('defaultrole_archetype', 'local_subcourseenrol')];
+    if (!during_initial_install()) {
+        $roles += get_default_enrol_roles(\context_system::instance());
+    }
+    $settings->add(new admin_setting_configselect(
+        'local_subcourseenrol/roleid',
+        get_string('roleid', 'local_subcourseenrol'),
+        get_string('roleid_desc', 'local_subcourseenrol'),
+        0,
+        $roles
+    ));
+
     $settings->add(new admin_setting_heading(
         'local_subcourseenrol/howto_heading',
         get_string('howto_heading', 'local_subcourseenrol'),

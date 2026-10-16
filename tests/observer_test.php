@@ -51,7 +51,16 @@ class observer_test extends \advanced_testcase {
      */
     protected function setUp(): void {
         parent::setUp();
+        \local_subcourseenrol\observer::reset_caches();
         $this->resetAfterTest();
+    }
+
+    /**
+     * Tear down after each test.
+     */
+    protected function tearDown(): void {
+        \local_subcourseenrol\observer::reset_caches();
+        parent::tearDown();
     }
 
     /**
@@ -77,15 +86,76 @@ class observer_test extends \advanced_testcase {
     }
 
     /**
-     * Helper to mock the course_module_viewed event.
+     * Helper to fetch manual enrolment instance for a course.
+     *
+     * @param int $courseid
+     * @return \stdClass|false
+     */
+    private function get_manual_instance(int $courseid) {
+        global $DB;
+        return $DB->get_record('enrol', ['courseid' => $courseid, 'enrol' => 'manual']);
+    }
+
+    /**
+     * Helper to fetch user enrolment for an instance and user.
+     *
+     * @param int $enrolid
+     * @param int $userid
+     * @return \stdClass|false
+     */
+    private function get_user_enrolment(int $enrolid, int $userid) {
+        global $DB;
+        return $DB->get_record('user_enrolments', ['enrolid' => $enrolid, 'userid' => $userid]);
+    }
+
+    /**
+     * Helper to fetch standard student role.
+     *
+     * @return \stdClass|false
+     */
+    private function get_student_role() {
+        global $DB;
+        return $DB->get_record('role', ['shortname' => 'student']);
+    }
+
+    /**
+     * Helper to create a secondary manual enrolment instance.
+     *
+     * @param int $courseid
+     * @param int $sortorder
+     * @return \stdClass
+     */
+    private function create_secondary_manual_instance(int $courseid, int $sortorder = 2): \stdClass {
+        global $DB;
+        $instance = (object)[
+            'enrol'        => 'manual',
+            'status'       => ENROL_INSTANCE_ENABLED,
+            'courseid'     => $courseid,
+            'name'         => 'Secondary manual instance',
+            'sortorder'    => $sortorder,
+            'customint1'   => 0,
+            'timecreated'  => time(),
+            'timemodified' => time(),
+        ];
+        $instance->id = $DB->insert_record('enrol', $instance);
+        return $instance;
+    }
+
+    /**
+     * Helper to mock and build the course_module_viewed event.
      *
      * @param \stdClass $mastercourse
      * @param \stdClass $targetcourse
      * @param \stdClass $student
      * @param int|null $refcourse Optional override for subcourse refcourse.
+     * @return \mod_subcourse\event\course_module_viewed
      */
-    private function trigger_subcourse_event($mastercourse, $targetcourse, $student, ?int $refcourse = null): void {
-        // We mock the event directly to avoid dependency on mod_subcourse generator.
+    private function create_subcourse_view_event(
+        $mastercourse,
+        $targetcourse,
+        $student,
+        ?int $refcourse = null
+    ): \mod_subcourse\event\course_module_viewed {
         global $DB;
 
         $subcourse = new \stdClass();
@@ -98,8 +168,8 @@ class observer_test extends \advanced_testcase {
         $subcourse->id = $DB->insert_record('subcourse', $subcourse);
         $subcourse = $DB->get_record('subcourse', ['id' => $subcourse->id]);
 
-        $module = $DB->get_record('modules', ['name' => 'subcourse'], 'id', IGNORE_MISSING);
-        $moduleid = $module ? $module->id : 1;
+        $module = $DB->get_record('modules', ['name' => 'subcourse'], 'id', MUST_EXIST);
+        $moduleid = (int)$module->id;
 
         $cm = new \stdClass();
         $cm->course = $mastercourse->id;
@@ -118,6 +188,19 @@ class observer_test extends \advanced_testcase {
         ]);
 
         $event->add_record_snapshot('subcourse', $subcourse);
+        return $event;
+    }
+
+    /**
+     * Helper to mock and trigger the course_module_viewed event.
+     *
+     * @param \stdClass $mastercourse
+     * @param \stdClass $targetcourse
+     * @param \stdClass $student
+     * @param int|null $refcourse Optional override for subcourse refcourse.
+     */
+    private function trigger_subcourse_event($mastercourse, $targetcourse, $student, ?int $refcourse = null): void {
+        $event = $this->create_subcourse_view_event($mastercourse, $targetcourse, $student, $refcourse);
         $event->trigger();
     }
 
@@ -159,7 +242,7 @@ class observer_test extends \advanced_testcase {
         $this->assertTrue(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
 
         global $DB;
-        $instance = $DB->get_record('enrol', ['courseid' => $targetcourse->id, 'enrol' => 'manual']);
+        $instance = $this->get_manual_instance($targetcourse->id);
         $count = $DB->count_records('user_enrolments', ['enrolid' => $instance->id, 'userid' => $student->id]);
         $this->assertEquals(1, $count, 'No duplicate user_enrolments records should exist.');
     }
@@ -208,13 +291,13 @@ class observer_test extends \advanced_testcase {
 
         $timeend = time() + 3600;
         // Update master enrolment to have a specific timeend.
-        $instance = $DB->get_record('enrol', ['courseid' => $mastercourse->id, 'enrol' => 'manual']);
+        $instance = $this->get_manual_instance($mastercourse->id);
         $DB->set_field('user_enrolments', 'timeend', $timeend, ['enrolid' => $instance->id, 'userid' => $student->id]);
 
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
 
-        $targetinstance = $DB->get_record('enrol', ['courseid' => $targetcourse->id, 'enrol' => 'manual']);
-        $targetenrolment = $DB->get_record('user_enrolments', ['enrolid' => $targetinstance->id, 'userid' => $student->id]);
+        $targetinstance = $this->get_manual_instance($targetcourse->id);
+        $targetenrolment = $this->get_user_enrolment($targetinstance->id, $student->id);
 
         $this->assertEquals($timeend, $targetenrolment->timeend);
     }
@@ -238,7 +321,7 @@ class observer_test extends \advanced_testcase {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
 
         // Change shortname of 'student' role to force archetype fallback.
-        $studentrole = $DB->get_record('role', ['shortname' => 'student']);
+        $studentrole = $this->get_student_role();
         $DB->set_field('role', 'shortname', 'student_custom', ['id' => $studentrole->id]);
 
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
@@ -250,38 +333,9 @@ class observer_test extends \advanced_testcase {
      * Test user_autoenrolled event is triggered on enrolment.
      */
     public function test_autoenrolled_event_is_fired(): void {
-        global $DB;
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
 
-        $subcourse = new \stdClass();
-        $subcourse->course = $mastercourse->id;
-        $subcourse->name = 'Mock subcourse';
-        $subcourse->refcourse = $targetcourse->id;
-        $subcourse->timecreated = time();
-        $subcourse->timemodified = time();
-
-        $subcourse->id = $DB->insert_record('subcourse', $subcourse);
-        $subcourse = $DB->get_record('subcourse', ['id' => $subcourse->id]);
-
-        $module = $DB->get_record('modules', ['name' => 'subcourse'], 'id', IGNORE_MISSING);
-        $moduleid = $module ? $module->id : 1;
-
-        $cm = new \stdClass();
-        $cm->course = $mastercourse->id;
-        $cm->module = $moduleid;
-        $cm->instance = $subcourse->id;
-        $cm->section = 1;
-        $cm->id = $DB->insert_record('course_modules', $cm);
-
-        $context = \context_module::instance($cm->id);
-
-        $event = \mod_subcourse\event\course_module_viewed::create([
-            'objectid' => $subcourse->id,
-            'context'  => $context,
-            'courseid' => $mastercourse->id,
-            'userid'   => $student->id,
-        ]);
-        $event->add_record_snapshot('subcourse', $subcourse);
+        $event = $this->create_subcourse_view_event($mastercourse, $targetcourse, $student);
 
         $sink = $this->redirectEvents();
         \local_subcourseenrol\observer::subcourse_viewed($event);
@@ -307,13 +361,13 @@ class observer_test extends \advanced_testcase {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
 
         // Ensure master enrolment has timeend = 0.
-        $instance = $DB->get_record('enrol', ['courseid' => $mastercourse->id, 'enrol' => 'manual']);
+        $instance = $this->get_manual_instance($mastercourse->id);
         $DB->set_field('user_enrolments', 'timeend', 0, ['enrolid' => $instance->id, 'userid' => $student->id]);
 
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
 
-        $targetinstance = $DB->get_record('enrol', ['courseid' => $targetcourse->id, 'enrol' => 'manual']);
-        $targetenrolment = $DB->get_record('user_enrolments', ['enrolid' => $targetinstance->id, 'userid' => $student->id]);
+        $targetinstance = $this->get_manual_instance($targetcourse->id);
+        $targetenrolment = $this->get_user_enrolment($targetinstance->id, $student->id);
 
         $this->assertEquals(0, $targetenrolment->timeend);
     }
@@ -326,25 +380,14 @@ class observer_test extends \advanced_testcase {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
 
         // Ensure primary manual enrolment has timeend = 0 (perpetual).
-        $manualinstance = $DB->get_record('enrol', ['courseid' => $mastercourse->id, 'enrol' => 'manual']);
+        $manualinstance = $this->get_manual_instance($mastercourse->id);
         $DB->set_field('user_enrolments', 'timeend', 0, ['enrolid' => $manualinstance->id, 'userid' => $student->id]);
 
         // Add a second enrolment instance directly in DB.
-        $secondinstance = (object)[
-            'enrol'        => 'manual',
-            'status'       => ENROL_INSTANCE_ENABLED,
-            'courseid'     => $mastercourse->id,
-            'name'         => 'Expiring enrolment',
-            'sortorder'    => 2,
-            'customint1'   => 0,
-            'timecreated'  => time(),
-            'timemodified' => time(),
-        ];
-        $secondinstanceid = $DB->insert_record('enrol', $secondinstance);
-        $secondinstance = $DB->get_record('enrol', ['id' => $secondinstanceid]);
+        $secondinstance = $this->create_secondary_manual_instance($mastercourse->id, 2);
 
         $enrolplugin = enrol_get_plugin('manual');
-        $studentrole = $DB->get_record('role', ['shortname' => 'student']);
+        $studentrole = $this->get_student_role();
         $futureexpiry = time() + 7200;
         $enrolplugin->enrol_user($secondinstance, $student->id, $studentrole->id, time(), $futureexpiry);
 
@@ -352,8 +395,8 @@ class observer_test extends \advanced_testcase {
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
 
         // Verify target enrolment inherited the perpetual timeend (0), not the future expiry.
-        $targetinstance = $DB->get_record('enrol', ['courseid' => $targetcourse->id, 'enrol' => 'manual']);
-        $targetenrolment = $DB->get_record('user_enrolments', ['enrolid' => $targetinstance->id, 'userid' => $student->id]);
+        $targetinstance = $this->get_manual_instance($targetcourse->id);
+        $targetenrolment = $this->get_user_enrolment($targetinstance->id, $student->id);
 
         $this->assertEquals(
             0,
@@ -369,8 +412,8 @@ class observer_test extends \advanced_testcase {
         global $DB;
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
 
-        $targetinstance = $DB->get_record('enrol', ['courseid' => $targetcourse->id, 'enrol' => 'manual']);
-        $studentrole = $DB->get_record('role', ['shortname' => 'student']);
+        $targetinstance = $this->get_manual_instance($targetcourse->id);
+        $studentrole = $this->get_student_role();
 
         // Create an expired enrolment in target course.
         $pasttime = time() - 3600;
@@ -379,7 +422,7 @@ class observer_test extends \advanced_testcase {
 
         // Master course has a future expiry date.
         $futureexpiry = time() + 86400;
-        $masterinstance = $DB->get_record('enrol', ['courseid' => $mastercourse->id, 'enrol' => 'manual']);
+        $masterinstance = $this->get_manual_instance($mastercourse->id);
         $DB->set_field('user_enrolments', 'timeend', $futureexpiry, [
             'enrolid' => $masterinstance->id,
             'userid'  => $student->id,
@@ -404,8 +447,8 @@ class observer_test extends \advanced_testcase {
         global $DB;
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
 
-        $targetinstance = $DB->get_record('enrol', ['courseid' => $targetcourse->id, 'enrol' => 'manual']);
-        $studentrole = $DB->get_record('role', ['shortname' => 'student']);
+        $targetinstance = $this->get_manual_instance($targetcourse->id);
+        $studentrole = $this->get_student_role();
 
         // Enrol and suspend in target course.
         $enrolplugin = enrol_get_plugin('manual');
@@ -436,7 +479,7 @@ class observer_test extends \advanced_testcase {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
 
         // Set master enrolment timestart in the future.
-        $masterinstance = $DB->get_record('enrol', ['courseid' => $mastercourse->id, 'enrol' => 'manual']);
+        $masterinstance = $this->get_manual_instance($mastercourse->id);
         $futurestart = time() + 3600;
         $DB->set_field('user_enrolments', 'timestart', $futurestart, [
             'enrolid' => $masterinstance->id,
@@ -456,7 +499,7 @@ class observer_test extends \advanced_testcase {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
 
         // Disable master enrolment instance.
-        $masterinstance = $DB->get_record('enrol', ['courseid' => $mastercourse->id, 'enrol' => 'manual']);
+        $masterinstance = $this->get_manual_instance($mastercourse->id);
         $DB->set_field('enrol', 'status', ENROL_INSTANCE_DISABLED, ['id' => $masterinstance->id]);
 
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
@@ -472,20 +515,12 @@ class observer_test extends \advanced_testcase {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
 
         // Disable the existing manual instance (sortorder = 1).
-        $firstinstance = $DB->get_record('enrol', ['courseid' => $targetcourse->id, 'enrol' => 'manual']);
+        $firstinstance = $this->get_manual_instance($targetcourse->id);
         $DB->set_field('enrol', 'status', ENROL_INSTANCE_DISABLED, ['id' => $firstinstance->id]);
 
         // Create a second enabled manual instance directly in DB with sortorder 2.
-        $secondinstance = (object)[
-            'enrol'        => 'manual',
-            'status'       => ENROL_INSTANCE_ENABLED,
-            'courseid'     => $targetcourse->id,
-            'name'         => 'Secondary manual instance',
-            'sortorder'    => 2,
-            'timecreated'  => time(),
-            'timemodified' => time(),
-        ];
-        $secondinstanceid = $DB->insert_record('enrol', $secondinstance);
+        $secondinstance = $this->create_secondary_manual_instance($targetcourse->id, 2);
+        $secondinstanceid = $secondinstance->id;
 
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
 
@@ -573,11 +608,123 @@ class observer_test extends \advanced_testcase {
         [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
 
         $now = time();
-        $instance = $DB->get_record('enrol', ['courseid' => $mastercourse->id, 'enrol' => 'manual']);
+        $instance = $this->get_manual_instance($mastercourse->id);
         $DB->set_field('user_enrolments', 'timestart', $now, ['enrolid' => $instance->id, 'userid' => $student->id]);
 
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
 
         $this->assertTrue(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+    }
+
+    /**
+     * Test repeated event triggers do not create duplicate enrolments or redundant events.
+     */
+    public function test_repeated_event_does_not_duplicate_enrolment(): void {
+        global $DB;
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+
+        $event = $this->create_subcourse_view_event($mastercourse, $targetcourse, $student);
+
+        $sink = $this->redirectEvents();
+
+        // First trigger: should enrol user and fire event.
+        \local_subcourseenrol\observer::subcourse_viewed($event);
+        $this->assertTrue(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+
+        // Second trigger: already enrolled, should be idempotent and no-op.
+        \local_subcourseenrol\observer::subcourse_viewed($event);
+
+        $events = $sink->get_events();
+        $sink->close();
+
+        $autoenrolevents = array_filter($events, function ($e) {
+            return $e instanceof \local_subcourseenrol\event\user_autoenrolled;
+        });
+
+        $this->assertCount(1, $autoenrolevents, 'Repeated event should not trigger multiple auto-enrolment events.');
+
+        $targetinstance = $this->get_manual_instance($targetcourse->id);
+        $count = $DB->count_records('user_enrolments', [
+            'enrolid' => $targetinstance->id,
+            'userid'  => $student->id,
+        ]);
+        $this->assertEquals(1, $count, 'User enrolment must remain singular.');
+    }
+
+    /**
+     * Test that auto-enrolment operates on event userid rather than global USER.
+     */
+    public function test_event_processed_for_different_event_user(): void {
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+        $admin = $this->getDataGenerator()->create_user();
+
+        // Set global USER to admin, but event belongs to student.
+        $this->setUser($admin);
+
+        $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+        $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $admin->id));
+
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
+
+        // Student must be enrolled, admin must not be enrolled.
+        $this->assertTrue(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+        $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $admin->id));
+    }
+
+    /**
+     * Test that configured role setting is used for enrolment.
+     */
+    public function test_configured_role_is_used(): void {
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+        $targetcontext = \context_course::instance($targetcourse->id);
+
+        $customroleid = $this->getDataGenerator()->create_role();
+        set_config('roleid', $customroleid, 'local_subcourseenrol');
+
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
+
+        $this->assertTrue(is_enrolled($targetcontext, $student->id));
+        $this->assertTrue(user_has_role_assignment($student->id, $customroleid, $targetcontext->id));
+    }
+
+    /**
+     * Test fallback to default student role when configured role is invalid.
+     */
+    public function test_configured_role_fallback_when_invalid(): void {
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+        $targetcontext = \context_course::instance($targetcourse->id);
+        $studentrole = $this->get_student_role();
+
+        set_config('roleid', 999999, 'local_subcourseenrol');
+
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
+
+        $this->assertTrue(is_enrolled($targetcontext, $student->id));
+        $this->assertTrue(user_has_role_assignment($student->id, $studentrole->id, $targetcontext->id));
+        $this->assertDebuggingCalled();
+    }
+
+    /**
+     * Test lock acquisition contention is handled gracefully without error.
+     */
+    public function test_lock_failure_handled_gracefully(): void {
+        global $CFG;
+        require_once(__DIR__ . '/fixtures/test_failing_lock_factory.php');
+
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+        $targetcontext = \context_course::instance($targetcourse->id);
+
+        $previousfactory = $CFG->lock_factory ?? null;
+        $CFG->lock_factory = \local_subcourseenrol\test\test_failing_lock_factory::class;
+
+        // Attempting to trigger event while lock acquisition fails should abort gracefully.
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
+        $this->assertFalse(is_enrolled($targetcontext, $student->id));
+        $this->assertDebuggingCalled();
+
+        // Restore lock factory and retry: enrolment should succeed.
+        $CFG->lock_factory = $previousfactory;
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
+        $this->assertTrue(is_enrolled($targetcontext, $student->id));
     }
 }
