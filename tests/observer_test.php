@@ -42,7 +42,7 @@ class observer_test extends \advanced_testcase {
         global $DB;
         parent::setUpBeforeClass();
         if (!$DB->get_manager()->table_exists('subcourse')) {
-            self::markTestSuiteSkipped('mod_subcourse is not installed; skipping all observer tests.');
+            self::markTestSkipped('mod_subcourse is not installed; skipping all observer tests.');
         }
     }
 
@@ -701,7 +701,10 @@ class observer_test extends \advanced_testcase {
 
         $this->assertTrue(is_enrolled($targetcontext, $student->id));
         $this->assertTrue(user_has_role_assignment($student->id, $studentrole->id, $targetcontext->id));
-        $this->assertDebuggingCalled();
+        $this->assertDebuggingCalled(
+            'local_subcourseenrol: Configured roleid 999999 not found, falling back to default.',
+            DEBUG_DEVELOPER
+        );
     }
 
     /**
@@ -720,7 +723,10 @@ class observer_test extends \advanced_testcase {
         // Attempting to trigger event while lock acquisition fails should abort gracefully.
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
         $this->assertFalse(is_enrolled($targetcontext, $student->id));
-        $this->assertDebuggingCalled();
+        $this->assertDebuggingCalled(
+            "local_subcourseenrol: Could not acquire lock for enrol_{$targetcourse->id}_{$student->id}.",
+            DEBUG_DEVELOPER
+        );
 
         // Restore lock factory and retry: enrolment should succeed.
         $CFG->lock_factory = $previousfactory;

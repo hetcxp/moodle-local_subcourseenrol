@@ -125,7 +125,7 @@ class event_test extends \advanced_testcase {
         ]);
 
         $url = $event->get_url();
-        $expected = new \moodle_url('/enrol/users.php', ['id' => $course->id]);
+        $expected = new \moodle_url('/user/index.php', ['id' => $course->id]);
         $this->assertEquals($expected, $url);
     }
 

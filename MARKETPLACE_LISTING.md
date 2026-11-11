@@ -1,6 +1,6 @@
 # Moodle Plugins Directory & Marketplace Listing Kit
 **Plugin:** Subcourse Auto-Enrolment (`local_subcourseenrol`)
-**Version:** 2.1.4 | **Target:** Moodle 4.5+ | **License:** GNU GPL v3
+**Version:** 2.1.5 | **Target:** Moodle 4.5–5.3+ | **License:** GNU GPL v3
 **Guidelines Reference:** [Moodle Marketplace Submission Standards](https://moodle.atlassian.net/wiki/external/OTE4YmM3MDlmM2ZjNDczMGFlNzRlZGM0YTlmNGVlNDU)
 
 ---
@@ -54,7 +54,7 @@ Managing structured multi-course curricula, corporate compliance tracks, or degr
 
 * ⚡ **Instant Event-Driven Enrolment:** Hooks into Moodle's native `course_module_viewed` event. Enrolment occurs transparently in the background the moment the subcourse activity is accessed.
 * ⏳ **Smart Access Expiration Sync (`timeend`):** Enrolment duration in the child course dynamically mirrors the learner's expiration in the master course. If access in the master course ends on June 30, the subcourse access automatically expires on June 30. Perpetual enrolments (no expiration) are preserved.
-* 🛡️ **Role Safety & Enrolment Isolation:** Enrols learners using Moodle’s standard Manual Enrolment method with the designated `student` role (Archetype). Teachers, non-editing teachers, and managers retain their standard permissions without cross-contamination.
+* 🛡️ **Role Safety & Configurable Enrolment Role:** Allows configuring the enrolment role in site administration with automatic fallback to Moodle’s standard `student` archetype. Enrols learners safely using the Manual Enrolment method without cross-contaminating teacher or manager permissions.
 * 📜 **Full Auditability & Native Logging:** Every automated enrolment triggers a native Moodle event (`\local_subcourseenrol\event\user_autoenrolled`), visible directly in *Site Administration → Reports → Logs*.
 * 🎛️ **Granular Site Control:** Toggle auto-enrolment globally via *Site Administration → Plugins → Local plugins → Subcourse Auto-Enrolment* without uninstalling or altering course content.
 
@@ -144,7 +144,7 @@ La gestión de itinerarios formativos complejos, programas corporativos o mallas
 
 * ⚡ **Matriculación Just-In-Time:** Basado en el evento nativo de Moodle `course_module_viewed`. La inscripción se realiza en segundo plano al hacer clic en el subcurso.
 * ⏳ **Sincronización Inteligente de Expiración (`timeend`):** La vigencia de acceso en el subcurso hereda con exactitud la fecha de finalización del curso principal. Si el acceso al curso padre vence el 31 de diciembre, el subcurso expirará en la misma fecha. Se respetan inscripciones permanentes.
-* 🛡️ **Aislamiento de Roles y Seguridad:** Matricula a los participantes exclusivamente con el rol de `estudiante` mediante el método nativo de Matriculación Manual. No afecta ni altera los permisos de docentes, tutores o gestores.
+* 🛡️ **Aislamiento de Roles y Rol Configurable:** Permite configurar el rol de matriculación en la administración del sitio con fallback automático al rol `estudiante` (arquetipo). Matricula de forma segura mediante el método nativo de Matriculación Manual sin alterar permisos docentes o de gestión.
 * 📜 **Auditoría Completa y Registro Nativo:** Cada matriculación dispara el evento `\local_subcourseenrol\event\user_autoenrolled`, visible de inmediato en *Administración del sitio → Informes → Registros*.
 * 🎛️ **Control Centralizado:** Interruptor global para activar o desactivar la funcionalidad en *Administración del sitio → Extensiones → Extensiones locales → Subcourse Auto-Enrolment*.
 

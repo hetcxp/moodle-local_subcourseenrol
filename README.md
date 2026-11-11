@@ -1,6 +1,6 @@
 # 🎓 Subcourse Auto-Enrolment — `local_subcourseenrol`
 
-> **Moodle Local Plugin** · v2.1.4 · Requires Moodle 4.5+ (tested with Moodle 5.3, compatible with Moodle 4.5–5.3) · Requires `mod_subcourse` ≥ 2025032001
+> **Moodle Local Plugin** · v2.1.5 · Requires Moodle 4.5+ (tested with Moodle 5.3, compatible with Moodle 4.5–5.3) · Requires `mod_subcourse` ≥ 2025032001
 
 **Subcourse Auto-Enrolment** bridges the gap between structured learning pathways and administrative simplicity. It automatically enrols students into target courses the moment they click on a Subcourse activity, syncing enrolment expiration effortlessly from the master course.
 
@@ -27,10 +27,11 @@ Managing complex training programs across multiple Moodle courses can be an admi
 | **Plugin type** | Local (`local_subcourseenrol`) |
 | **Entry point** | `db/events.php` — registers an observer on `\mod_subcourse\event\course_module_viewed` |
 | **Observer** | `classes/observer.php` — `subcourse_viewed()` |
+| **Role resolver** | `classes/local/role_resolver.php` — resolves configured enrolment role or falls back to student archetype |
 | **Custom event** | `classes/event/user_autoenrolled.php` — logged to Moodle's event log |
 | **Privacy** | `classes/privacy/provider.php` — `null_provider` (no data stored) |
 | **Settings** | `settings.php` — enable/disable toggle under _Site Administration → Local plugins_ |
-| **Tests** | `tests/observer_test.php` (21 cases) · `tests/event_test.php` (5 cases) [26 PHPUnit cases total] · `tests/behat/autoenrolment.feature` (3 Behat scenarios) |
+| **Tests** | `tests/observer_test.php` (26 cases) · `tests/event_test.php` (5 cases) [31 PHPUnit cases total] · `tests/behat/autoenrolment.feature` (3 Behat scenarios) |
 
 ---
 
@@ -57,20 +58,24 @@ observer::subcourse_viewed()
         ├─ Plugin disabled? → return
         ├─ subcourse.refcourse empty or ≤ 0? → return
         ├─ Target course or context missing? → return
-        ├─ User already actively enrolled in target? → return
         ├─ Master enrolment missing, inactive, disabled, or future start? → return
         ├─ Manual enrolment plugin disabled globally? → return (debugging)
         ├─ No enabled manual instance in target course? → return (debugging)
-        ├─ Existing target enrolment explicitly suspended? → return (preserve status)
-        ├─ No student role available? → return
-        └─ enrol_user(instance, userid, roleid, now, masterTimeend) [renews if expired]
-               └─ Fires user_autoenrolled event
+        ├─ Role resolution (roleid configured or fallback to archetype student) → No role? return
+        ├─ Acquire concurrency lock (\core\lock\lock_config) → Failed? return
+        │     ├─ User already actively enrolled in target? → release lock & return
+        │     ├─ Existing target enrolment explicitly suspended? → release lock & return (preserve status)
+        │     ├─ enrol_user(instance, userid, roleid, masterTimestart, masterTimeend) [renews if expired]
+        │     └─ Fires user_autoenrolled event
+        └─ Release lock
 ```
 
-**`timeend` resolution & renewal:**
+**`timestart` & `timeend` inheritance & renewal:**
 - The observer inspects `user_enrolments` in the master course and selects the most permissive active enrolment — perpetual (`timeend = 0`) is prioritised over any expiring enrolment.
-- If the learner was previously enrolled in the target course but their enrolment expired, access is renewed and synced to the master course's current end date.
+- Both `masterTimestart` and `masterTimeend` are inherited directly from the master course enrolment into the target course.
+- If the learner was previously enrolled in the target course but their enrolment expired, access is renewed and synced to the master course's active dates.
 - Explicitly suspended enrolments are kept intact to uphold administrative restrictions.
+- Concurrency lock via `\core\lock\lock_config` guarantees race-free execution during rapid concurrent clicks.
 
 ---
 
@@ -107,6 +112,7 @@ observer::subcourse_viewed()
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `enabled` | `1` (on) | Master toggle — disabling prevents all auto-enrolments |
+| `roleid` | `0` (Student archetype) | Permite elegir el rol asignado en auto-matrícula (0 default — Student archetype; fallback automático a arquetipo si no es válido) |
 
 Settings page: `Site Administration → Local plugins → Subcourse auto-enrolment`
 
@@ -114,7 +120,7 @@ Settings page: `Site Administration → Local plugins → Subcourse auto-enrolme
 
 ## 🧪 Running Tests & Quality Assurance
 
-### PHPUnit Test Suite (23 test cases)
+### PHPUnit Test Suite (31 test cases)
 ```bash
 # From your Moodle root
 vendor/bin/phpunit --filter local_subcourseenrol

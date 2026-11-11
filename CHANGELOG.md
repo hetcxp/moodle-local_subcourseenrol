@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [2.1.5] — 2026-10-16
 ### Added
+- `classes/local/role_resolver.php`: decoupled role resolution into isolated domain helper (`resolve_target_role()`, `reset_cache()`) adhering to CCP bounded contexts.
+- `version.php`: declared `$plugin->supported = [405, 503];` certifying official support from Moodle 4.5 LTS to Moodle 5.3+.
 - `classes/observer.php`: concurrency locking via `\core\lock\lock_config::get_lock_factory('local_subcourseenrol')` preventing TOCTOU race conditions on simultaneous subcourse activity clicks.
 - `settings.php`: configurable enrolment role (`local_subcourseenrol/roleid`) with course-context assignable role selector and fallback to student archetype.
 - `lang/en`, `lang/es`: added localized strings for `roleid`, `roleid_desc`, and `defaultrole_archetype`.
@@ -14,11 +16,15 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - `tests/fixtures/test_failing_lock_factory.php`: test fixture simulating lock contention.
 
 ### Fixed
+- `classes/event/user_autoenrolled.php`: updated `get_url()` from deprecated `/enrol/users.php` to canonical `/user/index.php`.
 - `classes/observer.php`: timestart inheritance from master course enrolment (`ue.timestart`) preserved in target course enrolment.
 - `classes/observer.php`: deterministic multi-enrolment query ordering by `timeend`, `timestart`, and `id` with explicit `LIMIT 1`.
 - `classes/observer.php`: per-request static memoization of `enabled` setting, target role, and manual enrolment instances with `reset_caches()`.
 - `classes/observer.php`: modular decomposition of `subcourse_viewed()` into focused private helper methods reducing cyclomatic complexity below 8.
-- `tests/observer_test.php`: refactored duplicate DB query blocks and replaced loose fallbacks with `MUST_EXIST`.
+- `tests/observer_test.php`: replaced invalid `markTestSuiteSkipped` with `markTestSkipped` in `setUpBeforeClass()` for clean skips when `mod_subcourse` is absent.
+- `tests/observer_test.php`: hardened `assertDebuggingCalled` with explicit expected error messages.
+- `tests/event_test.php`: synchronized `get_url` assertion with `/user/index.php`.
+- `phpunit.xml`: cleaned non-existent boilerplate `<file>` entries from `<source><include>`.
 
 ## [2.1.4] — 2026-10-13
 ### Added

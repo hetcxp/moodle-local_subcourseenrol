@@ -35,9 +35,6 @@ class observer {
     /** @var bool|null Cached enabled setting per request. */
     private static ?bool $enabled = null;
 
-    /** @var \stdClass|null Cached resolved target role per request. */
-    private static ?\stdClass $targetrole = null;
-
     /** @var array<int, \stdClass|null> Cached resolved manual instances by course ID per request. */
     private static array $instances = [];
 
@@ -48,7 +45,7 @@ class observer {
      */
     public static function reset_caches(): void {
         self::$enabled = null;
-        self::$targetrole = null;
+        \local_subcourseenrol\local\role_resolver::reset_cache();
         self::$instances = [];
     }
 
@@ -149,44 +146,12 @@ class observer {
     /**
      * Resolve the target enrolment role.
      *
-     * Prioritises the configured role ID if set. Otherwise resolves the 'student' role
-     * by shortname or falls back to archetype roles.
+     * Delegates resolution and static caching to role_resolver.
      *
      * @return \stdClass|null
      */
     private static function resolve_target_role(): ?\stdClass {
-        global $DB;
-
-        if (self::$targetrole !== null) {
-            return self::$targetrole;
-        }
-
-        $configroleid = (int) get_config('local_subcourseenrol', 'roleid');
-        if ($configroleid > 0) {
-            $configuredrole = $DB->get_record('role', ['id' => $configroleid], 'id, name, shortname, archetype', IGNORE_MISSING);
-            if ($configuredrole) {
-                self::$targetrole = $configuredrole;
-                return self::$targetrole;
-            }
-            debugging(
-                "local_subcourseenrol: Configured roleid {$configroleid} not found, falling back to default.",
-                DEBUG_DEVELOPER
-            );
-        }
-
-        $studentrole = $DB->get_record('role', ['shortname' => 'student'], 'id, name, shortname, archetype', IGNORE_MISSING);
-        if ($studentrole) {
-            self::$targetrole = $studentrole;
-            return self::$targetrole;
-        }
-
-        $roles = get_archetype_roles('student');
-        if (empty($roles)) {
-            return null;
-        }
-
-        self::$targetrole = reset($roles);
-        return self::$targetrole;
+        return \local_subcourseenrol\local\role_resolver::resolve_target_role();
     }
 
     /**
