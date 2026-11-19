@@ -63,13 +63,25 @@ class role_resolver {
         if ($configroleid > 0) {
             $configuredrole = $DB->get_record('role', ['id' => $configroleid], 'id, name, shortname, archetype', IGNORE_MISSING);
             if ($configuredrole) {
-                self::$targetrole = $configuredrole;
-                return self::$targetrole;
+                $assignable = $DB->record_exists('role_context_levels', [
+                    'roleid'       => $configuredrole->id,
+                    'contextlevel' => CONTEXT_COURSE,
+                ]);
+                if ($assignable) {
+                    self::$targetrole = $configuredrole;
+                    return self::$targetrole;
+                }
+                debugging(
+                    "local_subcourseenrol: Configured roleid {$configroleid} is not assignable in course context, " .
+                    'falling back to default.',
+                    DEBUG_DEVELOPER
+                );
+            } else {
+                debugging(
+                    "local_subcourseenrol: Configured roleid {$configroleid} not found, falling back to default.",
+                    DEBUG_DEVELOPER
+                );
             }
-            debugging(
-                "local_subcourseenrol: Configured roleid {$configroleid} not found, falling back to default.",
-                DEBUG_DEVELOPER
-            );
         }
 
         $studentrole = $DB->get_record('role', ['shortname' => 'student'], 'id, name, shortname, archetype', IGNORE_MISSING);
@@ -80,6 +92,10 @@ class role_resolver {
 
         $roles = get_archetype_roles('student');
         if (empty($roles)) {
+            debugging(
+                'local_subcourseenrol: No suitable enrolment role found (configured, student, or student archetype).',
+                DEBUG_DEVELOPER
+            );
             return null;
         }
 

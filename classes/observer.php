@@ -75,13 +75,16 @@ class observer {
         global $DB;
 
         $now = time();
-        $sql = "SELECT ue.timestart, ue.timeend
+        $sql = "SELECT ue.id, ue.timestart, ue.timeend
                   FROM {user_enrolments} ue
                   JOIN {enrol} e ON ue.enrolid = e.id
+                  JOIN {user} u ON u.id = ue.userid
                  WHERE e.courseid = :courseid
                    AND ue.userid = :userid
                    AND ue.status = :status
                    AND e.status = :enrolstatus
+                   AND u.deleted = 0
+                   AND u.suspended = 0
                    AND ue.timestart <= :timestart
                    AND (ue.timeend = 0 OR ue.timeend > :timeend)
               ORDER BY CASE WHEN ue.timeend = 0 THEN 1 ELSE 0 END DESC,
@@ -155,19 +158,39 @@ class observer {
     }
 
     /**
-     * Validate and extract event payload from subcourse view event.
+     * Resolve and validate the target course ID from the subcourse snapshot.
      *
      * @param \mod_subcourse\event\course_module_viewed $event
-     * @return array|null Array with targetcourseid, coursecontext, userid, mastercourseid, or null if invalid.
+     * @return int|null Valid target course ID, or null if invalid or self-referencing.
      */
-    private static function extract_event_payload(\mod_subcourse\event\course_module_viewed $event): ?array {
+    private static function resolve_target_courseid(\mod_subcourse\event\course_module_viewed $event): ?int {
         $subcourse = $event->get_record_snapshot('subcourse', $event->objectid);
         if (!$subcourse || empty($subcourse->refcourse)) {
             return null;
         }
 
         $targetcourseid = (int)$subcourse->refcourse;
-        if ($targetcourseid <= 0) {
+        if ($targetcourseid <= 0 || $targetcourseid === (int)SITEID || $targetcourseid === (int)$event->courseid) {
+            return null;
+        }
+
+        return $targetcourseid;
+    }
+
+    /**
+     * Validate and extract event payload from subcourse view event.
+     *
+     * @param \mod_subcourse\event\course_module_viewed $event
+     * @return array|null Array with targetcourseid, coursecontext, userid, mastercourseid, or null if invalid.
+     */
+    private static function extract_event_payload(\mod_subcourse\event\course_module_viewed $event): ?array {
+        if (\core\session\manager::is_loggedinas() || !empty($event->realuserid)) {
+            debugging('Auto-enrolment skipped: logged-in-as session.', DEBUG_DEVELOPER);
+            return null;
+        }
+
+        $targetcourseid = self::resolve_target_courseid($event);
+        if ($targetcourseid === null) {
             return null;
         }
 
@@ -198,23 +221,30 @@ class observer {
      *
      * @param \context_course $coursecontext Target course context.
      * @param int $userid User ID.
-     * @param int $instanceid Target enrol instance ID.
+     * @param int $targetcourseid Target course ID.
      * @return bool
      */
-    private static function is_enrolment_eligible(\context_course $coursecontext, int $userid, int $instanceid): bool {
+    private static function is_enrolment_eligible(\context_course $coursecontext, int $userid, int $targetcourseid): bool {
         global $DB;
 
         if (is_enrolled($coursecontext, $userid, '', true)) {
             return false;
         }
 
-        // Do not reactivate or override an explicitly suspended enrolment.
-        $existingue = $DB->get_record('user_enrolments', [
-            'enrolid' => $instanceid,
-            'userid'  => $userid,
-        ], 'id, status', IGNORE_MISSING);
+        // Do not reactivate or override an explicitly suspended enrolment in any method for the target course.
+        $sql = "SELECT 1
+                  FROM {user_enrolments} ue
+                  JOIN {enrol} e ON e.id = ue.enrolid
+                 WHERE e.courseid = :courseid
+                   AND ue.userid = :userid
+                   AND ue.status = :suspended";
+        $issuspended = $DB->record_exists_sql($sql, [
+            'courseid'  => $targetcourseid,
+            'userid'    => $userid,
+            'suspended' => ENROL_USER_SUSPENDED,
+        ]);
 
-        if ($existingue && (int)$existingue->status === ENROL_USER_SUSPENDED) {
+        if ($issuspended) {
             return false;
         }
 
@@ -258,7 +288,7 @@ class observer {
         }
 
         try {
-            if (!self::is_enrolment_eligible($coursecontext, $userid, (int)$instance->id)) {
+            if (!self::is_enrolment_eligible($coursecontext, $userid, $targetcourseid)) {
                 return;
             }
 
@@ -319,34 +349,42 @@ class observer {
      * @param \mod_subcourse\event\course_module_viewed $event
      */
     public static function subcourse_viewed(\mod_subcourse\event\course_module_viewed $event): void {
-        if (!self::is_enabled()) {
-            return;
-        }
+        try {
+            if (!self::is_enabled()) {
+                return;
+            }
 
-        $payload = self::extract_event_payload($event);
-        if (!$payload) {
-            return;
-        }
+            $payload = self::extract_event_payload($event);
+            if (!$payload) {
+                return;
+            }
 
-        $instance = self::resolve_enrol_instance($payload['targetcourseid']);
-        if (!$instance) {
-            return;
-        }
+            $instance = self::resolve_enrol_instance($payload['targetcourseid']);
+            if (!$instance) {
+                return;
+            }
 
-        if (!self::is_enrolment_eligible($payload['coursecontext'], $payload['userid'], (int)$instance->id)) {
-            return;
-        }
+            if (!self::is_enrolment_eligible($payload['coursecontext'], $payload['userid'], $payload['targetcourseid'])) {
+                return;
+            }
 
-        $masterenrolment = self::get_master_enrolment($payload['mastercourseid'], $payload['userid']);
-        if (!$masterenrolment) {
-            return;
-        }
+            $masterenrolment = self::get_master_enrolment($payload['mastercourseid'], $payload['userid']);
+            if (!$masterenrolment) {
+                return;
+            }
 
-        $targetrole = self::resolve_target_role();
-        if (!$targetrole) {
-            return;
-        }
+            $targetrole = self::resolve_target_role();
+            if (!$targetrole) {
+                return;
+            }
 
-        self::dispatch_enrolment($payload, $masterenrolment, $instance, $targetrole);
+            self::dispatch_enrolment($payload, $masterenrolment, $instance, $targetrole);
+        } catch (\Throwable $e) {
+            debugging(
+                'local_subcourseenrol: Unexpected exception in subcourse_viewed: ' . $e->getMessage() . "\n" .
+                $e->getTraceAsString(),
+                DEBUG_DEVELOPER
+            );
+        }
     }
 }

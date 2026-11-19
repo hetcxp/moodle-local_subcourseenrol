@@ -38,6 +38,7 @@ class event_test extends \advanced_testcase {
     /**
      * Setup before each test.
      */
+    #[\Override]
     protected function setUp(): void {
         parent::setUp();
         $this->resetAfterTest();
@@ -148,5 +149,29 @@ class event_test extends \advanced_testcase {
             'context' => $context,
             'other' => [],
         ]);
+    }
+
+    /**
+     * Test backup/restore objectid mapping.
+     */
+    public function test_get_objectid_mapping(): void {
+        $mapping = \local_subcourseenrol\event\user_autoenrolled::get_objectid_mapping();
+        $this->assertIsArray($mapping);
+        $this->assertSame(
+            ['db' => 'user_enrolments', 'restore' => \core\event\base::NOT_MAPPED],
+            $mapping
+        );
+    }
+
+    /**
+     * Test backup/restore other data mapping.
+     */
+    public function test_get_other_mapping(): void {
+        $mapping = \local_subcourseenrol\event\user_autoenrolled::get_other_mapping();
+        $this->assertIsArray($mapping);
+        $this->assertSame(
+            ['mastercourseid' => ['db' => 'course', 'restore' => \core\event\base::NOT_MAPPED]],
+            $mapping
+        );
     }
 }

@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
+## [2.1.6] — 2026-11-19
+### Security & Fixed
+- `classes/observer.php`: enforced cross-method **Suspension Safety** (`REL-1`) checking `{user_enrolments}` joined with `{enrol}` across all enrolment methods in the target course so any suspended enrolment blocks automatic re-enrolment.
+- `classes/observer.php`: added global `try/catch (\Throwable)` resilience wrapper (`REL-2`) with `debugging(..., DEBUG_DEVELOPER)` logging to prevent observer failures from breaking course module navigation.
+- `classes/observer.php`: skipped auto-enrolment during "Login as" (`\core\session\manager::is_loggedinas()`) sessions and filtered deleted/suspended users (`u.deleted = 0 AND u.suspended = 0`) (`REL-4`).
+- `classes/observer.php`: filtered `SITEID` and self-referential target courses (`$targetcourseid === $mastercourseid`) (`REL-5`), and ensured unique first column `ue.id` in master enrolment query (`REL-6`).
+- `classes/event/user_autoenrolled.php`: implemented `get_objectid_mapping()` and `get_other_mapping()` (`REL-7`) for Moodle backup/restore compatibility, plus `#[\Override]` attributes (`REL-11`).
+- `classes/privacy/provider.php`: added PHP 8.3 `#[\Override]` attribute (`REL-11`).
+- `classes/local/role_resolver.php`: validated `CONTEXT_COURSE` assignability via `role_context_levels` with `debugging()` notice on invalid/null resolution (`REL-10`).
+- `settings.php` & `lang/*/local_subcourseenrol.php`: passed `['context' => \context_system::instance()]` to `format_text()`, normalized `howto_desc` to a single AMOS-compliant line reflecting the configurable enrolment role (`REL-9`), and sorted language strings alphabetically.
+
+### Removed
+- `db/access.php` & `lang/*/local_subcourseenrol.php`: removed unused `local/subcourseenrol:manage` capability (`REL-8`).
+
 ## [2.1.5] — 2026-10-16
 ### Added
 - `classes/local/role_resolver.php`: decoupled role resolution into isolated domain helper (`resolve_target_role()`, `reset_cache()`) adhering to CCP bounded contexts.

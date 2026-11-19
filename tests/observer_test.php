@@ -733,4 +733,118 @@ class observer_test extends \advanced_testcase {
         $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
         $this->assertTrue(is_enrolled($targetcontext, $student->id));
     }
+
+    /**
+     * Test that a suspended enrolment in another enrol method (e.g. self) blocks auto-enrolment via manual.
+     */
+    public function test_suspended_in_other_enrol_method_prevents_autoenrolment(): void {
+        global $DB;
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+
+        $selfplugin = enrol_get_plugin('self');
+        $selfinstance = $DB->get_record('enrol', ['courseid' => $targetcourse->id, 'enrol' => 'self']);
+        if (!$selfinstance) {
+            $selfinstanceid = $selfplugin->add_default_instance($targetcourse);
+            $selfinstance = $DB->get_record('enrol', ['id' => $selfinstanceid], '*', MUST_EXIST);
+        }
+
+        $studentrole = $this->get_student_role();
+        $selfplugin->enrol_user($selfinstance, $student->id, $studentrole->id, 0, 0, ENROL_USER_SUSPENDED);
+
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
+
+        $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $student->id, '', true));
+        $manualinstance = $this->get_manual_instance($targetcourse->id);
+        $this->assertFalse($this->get_user_enrolment($manualinstance->id, $student->id));
+    }
+
+    /**
+     * Test that an unexpected exception in the observer (e.g. restored event snapshot error) is caught gracefully.
+     */
+    public function test_missing_subcourse_snapshot_caught_without_exception(): void {
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+
+        $event = $this->create_subcourse_view_event($mastercourse, $targetcourse, $student);
+        // Restoring an event marks it as restored so get_record_snapshot() throws coding_exception.
+        $restoredevent = \mod_subcourse\event\course_module_viewed::restore($event->get_data(), []);
+
+        \local_subcourseenrol\observer::subcourse_viewed($restoredevent);
+
+        $this->assertDebuggingCalled(null, DEBUG_DEVELOPER);
+        $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+    }
+
+    /**
+     * Test that a logged-in-as session skips auto-enrolment and logs a developer notice.
+     */
+    public function test_loggedinas_session_skips_autoenrolment(): void {
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+
+        $this->setAdminUser();
+        \core\session\manager::loginas($student->id, \context_system::instance());
+
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
+
+        $this->assertDebuggingCalled('Auto-enrolment skipped: logged-in-as session.', DEBUG_DEVELOPER);
+        $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+    }
+
+    /**
+     * Test that globally suspended or deleted user accounts are not auto-enrolled.
+     */
+    public function test_globally_suspended_and_deleted_users_not_enrolled(): void {
+        global $DB;
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+        $targetcontext = \context_course::instance($targetcourse->id);
+
+        // Globally suspended user.
+        $DB->set_field('user', 'suspended', 1, ['id' => $student->id]);
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student);
+        $this->assertFalse(is_enrolled($targetcontext, $student->id));
+
+        // Deleted user.
+        $deleteduser = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($deleteduser->id, $mastercourse->id, 'student');
+        $DB->set_field('user', 'deleted', 1, ['id' => $deleteduser->id]);
+
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $deleteduser);
+        $this->assertFalse(is_enrolled($targetcontext, $deleteduser->id));
+    }
+
+    /**
+     * Test that SITEID and self-referencing refcourse values are rejected without enrolment.
+     */
+    public function test_siteid_and_self_reference_refcourse_rejected(): void {
+        global $DB;
+        [$mastercourse, $targetcourse, $student] = $this->setup_scenario();
+
+        $sink = $this->redirectEvents();
+
+        // Site frontpage (SITEID) as refcourse.
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student, (int)SITEID);
+
+        // Self-referencing master course as refcourse.
+        $this->trigger_subcourse_event($mastercourse, $targetcourse, $student, (int)$mastercourse->id);
+
+        $events = $sink->get_events();
+        $sink->close();
+
+        $autoenrolevents = array_filter($events, function ($e) {
+            return $e instanceof \local_subcourseenrol\event\user_autoenrolled;
+        });
+
+        $this->assertCount(0, $autoenrolevents);
+
+        // Verify no user_enrolments record was created on SITEID.
+        $siteenrolment = $DB->record_exists_sql(
+            "SELECT 1
+               FROM {user_enrolments} ue
+               JOIN {enrol} e ON e.id = ue.enrolid
+              WHERE e.courseid = :courseid
+                AND ue.userid = :userid",
+            ['courseid' => SITEID, 'userid' => $student->id]
+        );
+        $this->assertFalse($siteenrolment);
+        $this->assertFalse(is_enrolled(\context_course::instance($targetcourse->id), $student->id));
+    }
 }

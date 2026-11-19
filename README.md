@@ -1,6 +1,6 @@
 # 🎓 Subcourse Auto-Enrolment — `local_subcourseenrol`
 
-> **Moodle Local Plugin** · v2.1.5 · Requires Moodle 4.5+ (tested with Moodle 5.3, compatible with Moodle 4.5–5.3) · Requires `mod_subcourse` ≥ 2025032001
+> **Moodle Local Plugin** · v2.1.6 (build `2026111900`, 2026-11-19) · Requires Moodle 4.5+ (tested with Moodle 5.3, compatible with Moodle 4.5–5.3) · Requires `mod_subcourse` ≥ 2025032001
 
 **Subcourse Auto-Enrolment** bridges the gap between structured learning pathways and administrative simplicity. It automatically enrols students into target courses the moment they click on a Subcourse activity, syncing enrolment expiration effortlessly from the master course.
 
@@ -12,7 +12,8 @@ Managing complex training programs across multiple Moodle courses can be an admi
 
 - **Seamless Learner Journey** — Students click a subcourse link and gain instant access. No frustrating _"You cannot enrol yourself in this course"_ errors.
 - **Smart Access Expiration & Renewal** — Enrolment duration in the target course dynamically mirrors the master course (`timeend` inheritance). If a prior enrolment has expired, navigating from the master course renews it. Perpetual enrolments (no expiry) are fully preserved.
-- **Suspension Safety** — Explicitly suspended enrolments in the target course (`ENROL_USER_SUSPENDED`) are respected and never overridden automatically.
+- **Suspension Safety (Cross-Method)** — Explicitly suspended enrolments in the target course (`ENROL_USER_SUSPENDED`) across any enrolment method are respected and never overridden automatically.
+- **Session & Target Guards** — Automatically skips "Login as" (`is_loggedinas()`) sessions, `SITEID`, self-referential subcourses, and deleted/suspended users.
 - **Deterministic Instance Selection** — Always selects the active, enabled manual enrolment method with the highest priority (`sortorder, id ASC`).
 - **Admin Relief** — Say goodbye to manual enrolments or complex cohort sync setups for subcourses.
 - **Audit Trail** — Every auto-enrolment fires a custom Moodle event (`\local_subcourseenrol\event\user_autoenrolled`) visible in the site log.
@@ -55,16 +56,16 @@ mod_subcourse fires course_module_viewed event
         │
         ▼
 observer::subcourse_viewed()
-        ├─ Plugin disabled? → return
-        ├─ subcourse.refcourse empty or ≤ 0? → return
+        ├─ Plugin disabled or "Login as" session? → return
+        ├─ subcourse.refcourse empty, ≤ 0, SITEID, or self-referential? → return
         ├─ Target course or context missing? → return
         ├─ Master enrolment missing, inactive, disabled, or future start? → return
         ├─ Manual enrolment plugin disabled globally? → return (debugging)
         ├─ No enabled manual instance in target course? → return (debugging)
-        ├─ Role resolution (roleid configured or fallback to archetype student) → No role? return
+        ├─ Role resolution (roleid configured + CONTEXT_COURSE check, or fallback to archetype student) → No role? return
         ├─ Acquire concurrency lock (\core\lock\lock_config) → Failed? return
         │     ├─ User already actively enrolled in target? → release lock & return
-        │     ├─ Existing target enrolment explicitly suspended? → release lock & return (preserve status)
+        │     ├─ Existing target enrolment explicitly suspended (any method)? → release lock & return (preserve status)
         │     ├─ enrol_user(instance, userid, roleid, masterTimestart, masterTimeend) [renews if expired]
         │     └─ Fires user_autoenrolled event
         └─ Release lock

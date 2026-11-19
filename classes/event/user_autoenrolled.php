@@ -35,6 +35,7 @@ class user_autoenrolled extends \core\event\base {
     /**
      * Init method.
      */
+    #[\Override]
     protected function init() {
         $this->data['crud'] = 'c';
         $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
@@ -46,6 +47,7 @@ class user_autoenrolled extends \core\event\base {
      *
      * @return string
      */
+    #[\Override]
     public static function get_name() {
         return get_string('event_user_autoenrolled', 'local_subcourseenrol');
     }
@@ -55,6 +57,7 @@ class user_autoenrolled extends \core\event\base {
      *
      * @return string
      */
+    #[\Override]
     public function get_description() {
         $mastercourseid = $this->other['mastercourseid'] ?? 'unknown';
         return "The user with id '$this->userid' was auto-enrolled in the course with id '$this->courseid' " .
@@ -66,6 +69,7 @@ class user_autoenrolled extends \core\event\base {
      *
      * @return \moodle_url
      */
+    #[\Override]
     public function get_url() {
         return new \moodle_url('/user/index.php', ['id' => $this->courseid]);
     }
@@ -76,11 +80,34 @@ class user_autoenrolled extends \core\event\base {
      * @throws \coding_exception
      * @return void
      */
+    #[\Override]
     protected function validate_data() {
         parent::validate_data();
 
         if (!isset($this->other['mastercourseid'])) {
             throw new \coding_exception('The \'mastercourseid\' value must be set in other.');
         }
+    }
+
+    /**
+     * Get objectid mapping for backup/restore.
+     *
+     * @return array
+     */
+    #[\Override]
+    public static function get_objectid_mapping() {
+        return ['db' => 'user_enrolments', 'restore' => self::NOT_MAPPED];
+    }
+
+    /**
+     * Get other data mapping for backup/restore.
+     *
+     * @return array
+     */
+    #[\Override]
+    public static function get_other_mapping() {
+        return [
+            'mastercourseid' => ['db' => 'course', 'restore' => self::NOT_MAPPED],
+        ];
     }
 }

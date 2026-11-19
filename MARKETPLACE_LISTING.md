@@ -1,6 +1,6 @@
 # Moodle Plugins Directory & Marketplace Listing Kit
 **Plugin:** Subcourse Auto-Enrolment (`local_subcourseenrol`)
-**Version:** 2.1.5 | **Target:** Moodle 4.5–5.3+ | **License:** GNU GPL v3
+**Version:** 2.1.6 (2026-11-19) | **Target:** Moodle 4.5–5.3+ | **License:** GNU GPL v3
 **Guidelines Reference:** [Moodle Marketplace Submission Standards](https://moodle.atlassian.net/wiki/external/OTE4YmM3MDlmM2ZjNDczMGFlNzRlZGM0YTlmNGVlNDU)
 
 ---
@@ -54,7 +54,7 @@ Managing structured multi-course curricula, corporate compliance tracks, or degr
 
 * ⚡ **Instant Event-Driven Enrolment:** Hooks into Moodle's native `course_module_viewed` event. Enrolment occurs transparently in the background the moment the subcourse activity is accessed.
 * ⏳ **Smart Access Expiration Sync (`timeend`):** Enrolment duration in the child course dynamically mirrors the learner's expiration in the master course. If access in the master course ends on June 30, the subcourse access automatically expires on June 30. Perpetual enrolments (no expiration) are preserved.
-* 🛡️ **Role Safety & Configurable Enrolment Role:** Allows configuring the enrolment role in site administration with automatic fallback to Moodle’s standard `student` archetype. Enrols learners safely using the Manual Enrolment method without cross-contaminating teacher or manager permissions.
+* 🛡️ **Role Safety, Suspension Safety & Configurable Enrolment Role:** Allows configuring the `CONTEXT_COURSE`-assignable enrolment role in site administration with automatic fallback to Moodle’s standard `student` archetype. Respects suspended enrolments across all enrolment methods, skips "Login as" sessions, and enrols learners safely using the Manual Enrolment method without cross-contaminating teacher or manager permissions.
 * 📜 **Full Auditability & Native Logging:** Every automated enrolment triggers a native Moodle event (`\local_subcourseenrol\event\user_autoenrolled`), visible directly in *Site Administration → Reports → Logs*.
 * 🎛️ **Granular Site Control:** Toggle auto-enrolment globally via *Site Administration → Plugins → Local plugins → Subcourse Auto-Enrolment* without uninstalling or altering course content.
 

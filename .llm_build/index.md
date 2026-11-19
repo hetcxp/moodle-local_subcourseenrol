@@ -3,28 +3,34 @@
 ## `classes/event/user_autoenrolled.php`
 - class user_autoenrolled [L34]
   * protected init() [L38]
-  * public get_name() [L49]
-  * public get_description() [L58]
-  * public get_url() [L69]
-  * protected validate_data() [L79]
+  * public get_name() [L50]
+  * public get_description() [L60]
+  * public get_url() [L72]
+  * protected validate_data() [L83]
+  * public get_objectid_mapping() [L97]
+  * public get_other_mapping() [L107]
+
+## `classes/local/role_resolver.php`
+- class role_resolver [L34]
+  * public reset_cache(): void [L43]
+  * public resolve_target_role(): ?\stdClass [L55]
 
 ## `classes/observer.php`
 - class observer [L34]
-  * public reset_caches(): void [L49]
-  * private is_enabled(): bool [L60]
-  * private get_master_enrolment(int $courseid, int $userid): ?\stdClass [L77]
+  * public reset_caches(): void [L46]
+  * private is_enabled(): bool [L57]
+  * private get_master_enrolment(int $courseid, int $userid): ?\stdClass [L74]
   * private resolve_enrol_instance(int $courseid): ?\stdClass [L117]
-  * private resolve_target_role(): ?\stdClass [L157]
-  * private extract_event_payload(\mod_subcourse\event\course_module_viewed $event): ?array [L198]
-  * private is_enrolment_eligible(\context_course $coursecontext, int $userid, int $instanceid): bool [L239]
-  * private dispatch_enrolment( array $payload, \stdClass $masterenrolment, \stdClass $instance, \stdClass $role ): void [L268]
-  * public subcourse_viewed(\mod_subcourse\event\course_module_viewed $event): void [L356]
+  * private resolve_target_role(): ?\stdClass [L156]
+  * private resolve_target_courseid(\mod_subcourse\event\course_module_viewed $event): ?int [L166]
+  * private extract_event_payload(\mod_subcourse\event\course_module_viewed $event): ?array [L186]
+  * private is_enrolment_eligible(\context_course $coursecontext, int $userid, int $targetcourseid): bool [L227]
+  * private dispatch_enrolment( array $payload, \stdClass $masterenrolment, \stdClass $instance, \stdClass $role ): void [L263]
+  * public subcourse_viewed(\mod_subcourse\event\course_module_viewed $event): void [L351]
 
 ## `classes/privacy/provider.php`
 - class provider [L34]
   * public get_reason(): string [L40]
-
-## `db/access.php`
 
 ## `db/events.php`
 
@@ -39,11 +45,13 @@
 ## `tests/event_test.php`
 - class event_test [L36]
   * protected setUp(): void [L41]
-  * public test_event_properties(): void [L49]
-  * public test_get_name(): void [L78]
-  * public test_get_description(): void [L86]
-  * public test_get_url(): void [L111]
-  * public test_validate_data_missing_mastercourseid(): void [L135]
+  * public test_event_properties(): void [L50]
+  * public test_get_name(): void [L79]
+  * public test_get_description(): void [L87]
+  * public test_get_url(): void [L112]
+  * public test_validate_data_missing_mastercourseid(): void [L136]
+  * public test_get_objectid_mapping(): void [L157]
+  * public test_get_other_mapping(): void [L169]
 
 ## `tests/fixtures/test_failing_lock_factory.php`
 - class test_failing_lock_factory [L36]
@@ -86,6 +94,22 @@
   * public test_event_processed_for_different_event_user(): void [L657]
   * public test_configured_role_is_used(): void [L677]
   * public test_configured_role_fallback_when_invalid(): void [L693]
-  * public test_lock_failure_handled_gracefully(): void [L710]
+  * public test_lock_failure_handled_gracefully(): void [L713]
+  * public test_suspended_in_other_enrol_method_prevents_autoenrolment(): void [L740]
+  * public test_missing_subcourse_snapshot_caught_without_exception(): void [L764]
+  * public test_loggedinas_session_skips_autoenrolment(): void [L780]
+  * public test_globally_suspended_and_deleted_users_not_enrolled(): void [L795]
+  * public test_siteid_and_self_reference_refcourse_rejected(): void [L817]
+
+## `tests/privacy_provider_test.php`
+- class privacy_provider_test [L36]
+  * public test_null_provider_contract(): void [L41]
+
+## `tests/role_resolver_test.php`
+- class role_resolver_test [L36]
+  * protected setUp(): void [L41]
+  * public test_resolve_configured_role_assignable_in_course_context(): void [L51]
+  * public test_resolve_configured_role_not_assignable_in_course_falls_back_to_student(): void [L68]
+  * public test_resolve_returns_null_with_debugging_when_no_role_available(): void [L89]
 
 ## `version.php`

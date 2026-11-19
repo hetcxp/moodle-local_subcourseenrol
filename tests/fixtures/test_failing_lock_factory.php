@@ -42,6 +42,7 @@ class test_failing_lock_factory extends \core\lock\file_lock_factory {
      * @param int $maxlifetime Unused.
      * @return bool False always.
      */
+    #[\Override]
     public function get_lock($resource, $timeout, $maxlifetime = 86400) {
         return false;
     }

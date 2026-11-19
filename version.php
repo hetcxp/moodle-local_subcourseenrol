@@ -25,11 +25,11 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_subcourseenrol';
-$plugin->version   = 2026101600;
+$plugin->version   = 2026111900;
 $plugin->requires  = 2024100700; // Moodle 4.5+ (compatible up to Moodle 5.3+).
 $plugin->supported = [405, 503];
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.1.5';
+$plugin->release   = '2.1.6';
 $plugin->dependencies = [
     'mod_subcourse' => 2025032001, // Requires 2025032001 which introduces the course_module_viewed event.
 ];
